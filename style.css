@@ -37,6 +37,119 @@ header h1 {
     opacity: 0.9;
 }
 
+.search-section {
+    padding: 40px;
+    background: #fff;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.search-section h2 {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+}
+
+.naver-search {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.naver-search input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    font-size: 1em;
+}
+
+.btn-search {
+    background: #03c75a;
+    color: white;
+    padding: 12px 30px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.btn-search:hover {
+    background: #02b350;
+}
+
+.search-results {
+    display: grid;
+    gap: 15px;
+}
+
+.search-result-item {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.2s;
+}
+
+.search-result-item:hover {
+    border-color: #667eea;
+}
+
+.search-result-info h4 {
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.search-result-info p {
+    color: #6c757d;
+    font-size: 0.9em;
+    margin: 3px 0;
+}
+
+.search-result-category {
+    display: inline-block;
+    padding: 4px 10px;
+    background: #e9ecef;
+    border-radius: 12px;
+    font-size: 0.8em;
+    color: #495057;
+    margin-top: 5px;
+}
+
+.btn-add-from-search {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9em;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+
+.btn-add-from-search:hover {
+    background: #5568d3;
+}
+
+.search-loading {
+    text-align: center;
+    padding: 20px;
+    color: #6c757d;
+}
+
+.search-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #f5c6cb;
+}
+
 .add-place-section {
     padding: 40px;
     background: #f8f9fa;

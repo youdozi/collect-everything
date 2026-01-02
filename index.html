@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>국내 장소 정보 모음</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
     <div class="container">
@@ -12,6 +14,15 @@
             <h1>🇰🇷 국내 장소 정보 모음</h1>
             <p class="subtitle">카페, 음식점, 여행지 정보를 한곳에서!</p>
         </header>
+
+        <div class="search-section">
+            <h2>🔍 네이버 지도에서 검색</h2>
+            <div class="naver-search">
+                <input type="text" id="naverSearchInput" placeholder="장소명을 입력하세요 (예: 강남 카페)">
+                <button type="button" id="naverSearchBtn" class="btn-search">검색</button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>
 
         <div class="add-place-section">
             <h2>새 장소 추가</h2>
@@ -89,6 +100,9 @@
         </div>
     </div>
 
+    <!-- 환경 변수 설정 (config.js에서 로드) -->
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

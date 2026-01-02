@@ -1,0 +1,24 @@
+{
+  "name": "korean-places-app",
+  "version": "2.0.0",
+  "description": "국내 카페, 음식점, 여행지 정보 수집 웹앱",
+  "main": "index.html",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  },
+  "keywords": [
+    "korea",
+    "places",
+    "cafe",
+    "restaurant",
+    "travel",
+    "naver",
+    "supabase"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "vercel": "^33.0.0"
+  }
+}
