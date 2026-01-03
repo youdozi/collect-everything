@@ -25,7 +25,19 @@
                 <h1>✈️ 여행 기록장</h1>
                 <p class="header-subtitle">소중한 여행의 순간들을 기록하세요</p>
             </div>
-            <button class="btn-new-trip" id="btnNewTrip">+ 새 여행 추가</button>
+            <div class="header-actions">
+                <!-- 로그인 전 -->
+                <div id="authButtonsGuest" class="auth-buttons" style="display: none;">
+                    <button class="btn-login" id="btnLogin">로그인</button>
+                    <button class="btn-signup" id="btnSignup">회원가입</button>
+                </div>
+                <!-- 로그인 후 -->
+                <div id="authButtonsUser" class="auth-buttons" style="display: none;">
+                    <span class="user-info" id="userInfo"></span>
+                    <button class="btn-new-trip" id="btnNewTrip" style="display: none;">+ 새 여행 추가</button>
+                    <button class="btn-logout" id="btnLogout">로그아웃</button>
+                </div>
+            </div>
         </header>
 
         <!-- 메인 컨텐츠 -->
@@ -276,9 +288,76 @@
         </div>
     </div>
 
+    <!-- 로그인 모달 -->
+    <div class="modal" id="modalLogin">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>로그인</h2>
+                <button class="modal-close" onclick="closeModal('modalLogin')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="formLogin">
+                    <div class="form-group">
+                        <label>이메일 *</label>
+                        <input type="email" id="loginEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호 *</label>
+                        <input type="password" id="loginPassword" placeholder="비밀번호" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('modalLogin')">취소</button>
+                        <button type="submit" class="btn-primary">로그인</button>
+                    </div>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="openModal('modalSignup'); closeModal('modalLogin'); return false;">회원가입</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 회원가입 모달 -->
+    <div class="modal" id="modalSignup">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>회원가입</h2>
+                <button class="modal-close" onclick="closeModal('modalSignup')">×</button>
+            </div>
+            <div class="modal-body">
+                <form id="formSignup">
+                    <div class="form-group">
+                        <label>이메일 *</label>
+                        <input type="email" id="signupEmail" placeholder="your@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호 * (최소 6자)</label>
+                        <input type="password" id="signupPassword" placeholder="비밀번호" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>비밀번호 확인 *</label>
+                        <input type="password" id="signupPasswordConfirm" placeholder="비밀번호 확인" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>이름 (선택)</label>
+                        <input type="text" id="signupDisplayName" placeholder="홍길동">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('modalSignup')">취소</button>
+                        <button type="submit" class="btn-primary">가입하기</button>
+                    </div>
+                </form>
+                <div class="auth-links">
+                    <a href="#" onclick="openModal('modalLogin'); closeModal('modalSignup'); return false;">이미 계정이 있으신가요? 로그인</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 환경 변수 설정 -->
     <script src="config.js"></script>
     <script src="supabase-client.js"></script>
+    <script src="auth-client.js"></script>
     <script src="app.js"></script>
 </body>
 </html>

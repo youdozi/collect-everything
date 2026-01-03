@@ -76,6 +76,86 @@ body {
     box-shadow: 0 8px 16px rgba(102, 126, 234, 0.3);
 }
 
+.header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.auth-buttons {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.user-info {
+    font-size: 0.95em;
+    color: var(--dark);
+    padding: 8px 16px;
+    background: var(--light);
+    border-radius: 20px;
+    font-weight: 500;
+}
+
+.btn-login, .btn-signup {
+    background: white;
+    color: var(--primary);
+    border: 2px solid var(--primary);
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-login:hover, .btn-signup:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.btn-logout {
+    background: var(--danger);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-logout:hover {
+    background: #c82333;
+    transform: translateY(-2px);
+}
+
+.auth-links {
+    text-align: center;
+    margin-top: 16px;
+}
+
+.auth-links a {
+    color: var(--primary);
+    text-decoration: none;
+    font-size: 0.9em;
+}
+
+.auth-links a:hover {
+    text-decoration: underline;
+}
+
+/* Viewer 모드 (일반 사용자) - 수정/삭제 버튼 숨김 */
+body.viewer-mode .btn-icon {
+    display: none !important;
+}
+
+body.viewer-mode .btn-add-visit {
+    display: none !important;
+}
+
 /* ============================================
    메인 컨텐츠
    ============================================ */

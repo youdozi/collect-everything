@@ -10,6 +10,17 @@ DROP TABLE IF EXISTS expenses CASCADE;
 DROP TABLE IF EXISTS visits CASCADE;
 DROP TABLE IF EXISTS places CASCADE;
 DROP TABLE IF EXISTS trips CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- 0. 사용자 테이블 (Supabase Auth 연동)
+CREATE TABLE users (
+  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  email TEXT UNIQUE NOT NULL,
+  role TEXT NOT NULL DEFAULT 'viewer' CHECK (role IN ('viewer', 'admin')),
+  display_name TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
 
 -- 1. 여행 정보 테이블
 CREATE TABLE trips (
@@ -81,6 +92,8 @@ CREATE TABLE photos (
 -- 인덱스 생성
 -- ============================================
 
+CREATE INDEX idx_users_email ON users(email);
+CREATE INDEX idx_users_role ON users(role);
 CREATE INDEX idx_trips_start_date ON trips(start_date DESC);
 CREATE INDEX idx_visits_trip_id ON visits(trip_id);
 CREATE INDEX idx_visits_place_id ON visits(place_id);
@@ -102,6 +115,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+-- users 테이블 트리거
+CREATE TRIGGER update_users_updated_at
+  BEFORE UPDATE ON users
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
+
 -- trips 테이블 트리거
 CREATE TRIGGER update_trips_updated_at
   BEFORE UPDATE ON trips
@@ -113,6 +132,30 @@ CREATE TRIGGER update_visits_updated_at
   BEFORE UPDATE ON visits
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
+
+-- ============================================
+-- 사용자 자동 생성 트리거 (Supabase Auth 연동)
+-- ============================================
+
+CREATE OR REPLACE FUNCTION handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.users (id, email, role, display_name)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    'viewer', -- 기본값은 viewer
+    COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
+  );
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- auth.users에 사용자 추가 시 자동으로 public.users에도 추가
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT ON auth.users
+  FOR EACH ROW
+  EXECUTE FUNCTION handle_new_user();
 
 -- ============================================
 -- 총 지출 자동 계산 함수
@@ -157,35 +200,122 @@ CREATE TRIGGER trigger_update_total_spent_delete
 -- Row Level Security (RLS)
 -- ============================================
 
+ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE trips ENABLE ROW LEVEL SECURITY;
 ALTER TABLE places ENABLE ROW LEVEL SECURITY;
 ALTER TABLE visits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE expenses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE photos ENABLE ROW LEVEL SECURITY;
 
--- 모든 사용자가 읽기 가능 (추후 인증 추가 시 수정)
-CREATE POLICY "Anyone can read trips" ON trips FOR SELECT USING (true);
-CREATE POLICY "Anyone can read places" ON places FOR SELECT USING (true);
-CREATE POLICY "Anyone can read visits" ON visits FOR SELECT USING (true);
-CREATE POLICY "Anyone can read expenses" ON expenses FOR SELECT USING (true);
-CREATE POLICY "Anyone can read photos" ON photos FOR SELECT USING (true);
+-- ============================================
+-- Helper function: 사용자 권한 확인
+-- ============================================
 
--- 모든 사용자가 추가/수정/삭제 가능 (추후 인증 추가 시 수정)
-CREATE POLICY "Anyone can insert trips" ON trips FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can insert places" ON places FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can insert visits" ON visits FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can insert expenses" ON expenses FOR INSERT WITH CHECK (true);
-CREATE POLICY "Anyone can insert photos" ON photos FOR INSERT WITH CHECK (true);
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+  RETURN EXISTS (
+    SELECT 1 FROM users
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
-CREATE POLICY "Anyone can update trips" ON trips FOR UPDATE USING (true);
-CREATE POLICY "Anyone can update visits" ON visits FOR UPDATE USING (true);
-CREATE POLICY "Anyone can update expenses" ON expenses FOR UPDATE USING (true);
+-- ============================================
+-- Users 테이블 정책
+-- ============================================
 
-CREATE POLICY "Anyone can delete trips" ON trips FOR DELETE USING (true);
-CREATE POLICY "Anyone can delete places" ON places FOR DELETE USING (true);
-CREATE POLICY "Anyone can delete visits" ON visits FOR DELETE USING (true);
-CREATE POLICY "Anyone can delete expenses" ON expenses FOR DELETE USING (true);
-CREATE POLICY "Anyone can delete photos" ON photos FOR DELETE USING (true);
+-- 모든 로그인 사용자는 자기 정보 조회 가능
+CREATE POLICY "Users can view own profile" ON users
+  FOR SELECT USING (auth.uid() = id);
+
+-- 관리자는 모든 사용자 조회 가능
+CREATE POLICY "Admins can view all users" ON users
+  FOR SELECT USING (is_admin());
+
+-- 사용자는 자기 프로필 수정 가능 (role 제외)
+CREATE POLICY "Users can update own profile" ON users
+  FOR UPDATE USING (auth.uid() = id)
+  WITH CHECK (
+    auth.uid() = id AND
+    (SELECT role FROM users WHERE id = auth.uid()) = role -- role 변경 불가
+  );
+
+-- ============================================
+-- Trips 테이블 정책
+-- ============================================
+
+-- 로그인한 사용자 (viewer + admin) 모두 조회 가능
+CREATE POLICY "Authenticated users can view trips" ON trips
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+-- 관리자만 추가/수정/삭제 가능
+CREATE POLICY "Admins can insert trips" ON trips
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Admins can update trips" ON trips
+  FOR UPDATE USING (is_admin());
+
+CREATE POLICY "Admins can delete trips" ON trips
+  FOR DELETE USING (is_admin());
+
+-- ============================================
+-- Places 테이블 정책
+-- ============================================
+
+CREATE POLICY "Authenticated users can view places" ON places
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admins can insert places" ON places
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Admins can delete places" ON places
+  FOR DELETE USING (is_admin());
+
+-- ============================================
+-- Visits 테이블 정책
+-- ============================================
+
+CREATE POLICY "Authenticated users can view visits" ON visits
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admins can insert visits" ON visits
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Admins can update visits" ON visits
+  FOR UPDATE USING (is_admin());
+
+CREATE POLICY "Admins can delete visits" ON visits
+  FOR DELETE USING (is_admin());
+
+-- ============================================
+-- Expenses 테이블 정책
+-- ============================================
+
+CREATE POLICY "Authenticated users can view expenses" ON expenses
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admins can insert expenses" ON expenses
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Admins can update expenses" ON expenses
+  FOR UPDATE USING (is_admin());
+
+CREATE POLICY "Admins can delete expenses" ON expenses
+  FOR DELETE USING (is_admin());
+
+-- ============================================
+-- Photos 테이블 정책
+-- ============================================
+
+CREATE POLICY "Authenticated users can view photos" ON photos
+  FOR SELECT USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "Admins can insert photos" ON photos
+  FOR INSERT WITH CHECK (is_admin());
+
+CREATE POLICY "Admins can delete photos" ON photos
+  FOR DELETE USING (is_admin());
 
 -- ============================================
 -- 유용한 뷰 (Views)

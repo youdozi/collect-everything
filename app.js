@@ -82,21 +82,49 @@ const CATEGORY_EMOJI = {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', async () => {
+  // 인증 클라이언트 초기화
+  await authClient.init();
+
   // 이벤트 리스너 등록
   initEventListeners();
+
+  // 인증 상태 변경 리스너
+  window.addEventListener('authStateChanged', handleAuthStateChange);
+
+  // 초기 인증 상태 UI 업데이트
+  await updateAuthUI();
 
   // Web Share Target 처리 (iOS/Android 공유 기능)
   handleWebShareTarget();
 
-  // 여행 목록 로드
-  await loadTrips();
+  // 여행 목록 로드 (로그인 필수)
+  const isAuth = await authClient.isAuthenticated();
+  if (isAuth) {
+    await loadTrips();
+  } else {
+    showLoginRequiredMessage();
+  }
 });
 
 function initEventListeners() {
-  // 새 여행 추가 버튼
-  document.getElementById('btnNewTrip').addEventListener('click', () => {
-    openModal('modalNewTrip');
+  // 인증 관련 이벤트
+  document.getElementById('btnLogin').addEventListener('click', () => {
+    openModal('modalLogin');
   });
+  document.getElementById('btnSignup').addEventListener('click', () => {
+    openModal('modalSignup');
+  });
+  document.getElementById('btnLogout').addEventListener('click', handleLogout);
+  document.getElementById('formLogin').addEventListener('submit', handleLogin);
+  document.getElementById('formSignup').addEventListener('submit', handleSignup);
+
+  // 새 여행 추가 버튼
+  const btnNewTrip = document.getElementById('btnNewTrip');
+  if (btnNewTrip) {
+    btnNewTrip.addEventListener('click', () => {
+      openModal('modalNewTrip');
+    });
+  }
 
   // 새 여행 폼 제출
   document.getElementById('formNewTrip').addEventListener('submit', handleAddTrip);
@@ -164,6 +192,137 @@ function closeModal(modalId) {
 
 // 전역 함수로 노출 (HTML onclick에서 사용)
 window.closeModal = closeModal;
+window.openModal = openModal;
+
+// ============================================
+// 인증 관리
+// ============================================
+
+async function handleLogin(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('loginEmail').value;
+  const password = document.getElementById('loginPassword').value;
+
+  try {
+    const result = await authClient.signIn(email, password);
+    closeModal('modalLogin');
+    document.getElementById('formLogin').reset();
+    showMessage(`환영합니다, ${result.profile.display_name}님!`);
+    await loadTrips();
+  } catch (error) {
+    console.error('Login failed:', error);
+    showMessage('로그인에 실패했습니다: ' + error.message, 'error');
+  }
+}
+
+async function handleSignup(e) {
+  e.preventDefault();
+
+  const email = document.getElementById('signupEmail').value;
+  const password = document.getElementById('signupPassword').value;
+  const passwordConfirm = document.getElementById('signupPasswordConfirm').value;
+  const displayName = document.getElementById('signupDisplayName').value;
+
+  if (password !== passwordConfirm) {
+    showMessage('비밀번호가 일치하지 않습니다', 'error');
+    return;
+  }
+
+  try {
+    const result = await authClient.signUp(email, password, displayName);
+    closeModal('modalSignup');
+    document.getElementById('formSignup').reset();
+
+    if (result.needsEmailConfirmation) {
+      showMessage(result.message, 'warning');
+    } else {
+      showMessage(result.message);
+      await loadTrips();
+    }
+  } catch (error) {
+    console.error('Signup failed:', error);
+    showMessage('회원가입에 실패했습니다: ' + error.message, 'error');
+  }
+}
+
+async function handleLogout() {
+  try {
+    await authClient.signOut();
+    showMessage('로그아웃되었습니다');
+    // 페이지 새로고침으로 초기 상태로
+    window.location.reload();
+  } catch (error) {
+    console.error('Logout failed:', error);
+    showMessage('로그아웃에 실패했습니다', 'error');
+  }
+}
+
+async function handleAuthStateChange(event) {
+  const { user, profile } = event.detail;
+  console.log('Auth state changed:', user ? 'logged in' : 'logged out');
+  await updateAuthUI();
+
+  if (user) {
+    await loadTrips();
+  }
+}
+
+async function updateAuthUI() {
+  const user = await authClient.getCurrentUser();
+  const profile = await authClient.getCurrentUserProfile();
+
+  const guestButtons = document.getElementById('authButtonsGuest');
+  const userButtons = document.getElementById('authButtonsUser');
+  const userInfo = document.getElementById('userInfo');
+  const btnNewTrip = document.querySelector('#authButtonsUser .btn-new-trip');
+
+  if (user && profile) {
+    // 로그인 상태
+    guestButtons.style.display = 'none';
+    userButtons.style.display = 'flex';
+
+    // 사용자 정보 표시
+    const roleText = profile.role === 'admin' ? '관리자' : '일반';
+    userInfo.textContent = `${profile.display_name} (${roleText})`;
+
+    // 관리자만 여행 추가 버튼 표시
+    if (btnNewTrip) {
+      btnNewTrip.style.display = profile.role === 'admin' ? 'inline-block' : 'none';
+    }
+
+    // 수정/삭제 버튼 권한 제어
+    updateAdminUIControls(profile.role === 'admin');
+  } else {
+    // 로그아웃 상태
+    guestButtons.style.display = 'flex';
+    userButtons.style.display = 'none';
+  }
+}
+
+function updateAdminUIControls(isAdmin) {
+  // 방문 추가 버튼
+  const btnAddVisit = document.getElementById('btnAddVisit');
+  if (btnAddVisit) {
+    btnAddVisit.style.display = isAdmin ? 'inline-block' : 'none';
+  }
+
+  // 수정/삭제 버튼 숨기기 (CSS로 제어)
+  document.body.classList.toggle('viewer-mode', !isAdmin);
+}
+
+function showLoginRequiredMessage() {
+  const container = document.getElementById('tripsList');
+  container.innerHTML = `
+    <div class="empty-state">
+      <h3>🔒 로그인이 필요합니다</h3>
+      <p>여행 기록을 보려면 로그인해주세요</p>
+      <button class="btn-primary" onclick="openModal('modalLogin')" style="margin-top: 20px;">
+        로그인하기
+      </button>
+    </div>
+  `;
+}
 
 // ============================================
 // 여행 관리
