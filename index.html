@@ -3,104 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>국내 장소 정보 모음</title>
+    <title>여행 기록장 - Travel Journal</title>
     <link rel="stylesheet" href="style.css">
     <!-- Supabase JS Client -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>🇰🇷 국내 장소 정보 모음</h1>
-            <p class="subtitle">카페, 음식점, 여행지 정보를 한곳에서!</p>
+    <div class="app-container">
+        <!-- 헤더 -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1>✈️ 여행 기록장</h1>
+                <p class="header-subtitle">소중한 여행의 순간들을 기록하세요</p>
+            </div>
+            <button class="btn-new-trip" id="btnNewTrip">+ 새 여행 추가</button>
         </header>
 
-        <div class="search-section">
-            <h2>🔍 네이버 지도에서 검색</h2>
-            <div class="naver-search">
-                <input type="text" id="naverSearchInput" placeholder="장소명을 입력하세요 (예: 강남 카페)">
-                <button type="button" id="naverSearchBtn" class="btn-search">검색</button>
+        <!-- 메인 컨텐츠 -->
+        <main class="main-content">
+            <!-- 여행 목록 뷰 -->
+            <div id="tripsView" class="trips-view">
+                <div class="view-header">
+                    <h2>내 여행 목록</h2>
+                    <div class="filter-controls">
+                        <select id="tripFilter">
+                            <option value="all">전체 여행</option>
+                            <option value="upcoming">예정된 여행</option>
+                            <option value="past">지난 여행</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="tripsList" class="trips-grid">
+                    <!-- 여행 카드들이 여기에 렌더링됩니다 -->
+                </div>
             </div>
-            <div id="searchResults" class="search-results"></div>
+
+            <!-- 여행 상세 뷰 -->
+            <div id="tripDetailView" class="trip-detail-view" style="display: none;">
+                <div class="detail-header">
+                    <button class="btn-back" id="btnBack">← 목록으로</button>
+                    <div class="detail-title">
+                        <h2 id="detailTripTitle"></h2>
+                        <p id="detailTripDate"></p>
+                    </div>
+                    <button class="btn-add-visit" id="btnAddVisit">+ 방문 추가</button>
+                </div>
+
+                <div class="detail-stats">
+                    <div class="stat-card">
+                        <span class="stat-label">예산</span>
+                        <span class="stat-value" id="detailBudget">0원</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">지출</span>
+                        <span class="stat-value" id="detailSpent">0원</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">방문</span>
+                        <span class="stat-value" id="detailVisitCount">0곳</span>
+                    </div>
+                </div>
+
+                <div class="detail-content">
+                    <h3>방문 기록</h3>
+                    <div id="visitsList" class="visits-timeline">
+                        <!-- 방문 기록들이 타임라인 형식으로 렌더링됩니다 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 새 여행 추가 모달 -->
+        <div id="modalNewTrip" class="modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h3>새 여행 추가</h3>
+                    <button class="btn-close" onclick="closeModal('modalNewTrip')">×</button>
+                </div>
+                <form id="formNewTrip">
+                    <div class="form-group">
+                        <label>여행 제목 *</label>
+                        <input type="text" id="tripTitle" required placeholder="예) 제주도 힐링 여행">
+                    </div>
+                    <div class="form-group">
+                        <label>목적지</label>
+                        <input type="text" id="tripDestination" placeholder="예) 제주도">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>시작일 *</label>
+                            <input type="date" id="tripStartDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>종료일</label>
+                            <input type="date" id="tripEndDate">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>예산</label>
+                        <input type="number" id="tripBudget" placeholder="0" min="0">
+                    </div>
+                    <div class="form-group">
+                        <label>메모</label>
+                        <textarea id="tripDescription" rows="3" placeholder="여행에 대한 간단한 설명"></textarea>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('modalNewTrip')">취소</button>
+                        <button type="submit" class="btn-primary">추가하기</button>
+                    </div>
+                </form>
+            </div>
         </div>
 
-        <div class="add-place-section">
-            <h2>새 장소 추가</h2>
-            <form id="placeForm">
-                <div class="form-group">
-                    <label for="placeName">장소명 *</label>
-                    <input type="text" id="placeName" required placeholder="예) 스타벅스 강남점">
+        <!-- 방문 추가 모달 -->
+        <div id="modalAddVisit" class="modal">
+            <div class="modal-content modal-large">
+                <div class="modal-header">
+                    <h3>방문 장소 추가</h3>
+                    <button class="btn-close" onclick="closeModal('modalAddVisit')">×</button>
                 </div>
 
-                <div class="form-group">
-                    <label for="category">카테고리 *</label>
-                    <select id="category" required>
-                        <option value="">선택하세요</option>
-                        <option value="cafe">☕ 카페</option>
-                        <option value="restaurant">🍽️ 음식점</option>
-                        <option value="tourist">🏞️ 여행지</option>
-                    </select>
+                <!-- 네이버 검색 -->
+                <div class="search-section">
+                    <div class="search-input-group">
+                        <input type="text" id="placeSearchInput" placeholder="네이버에서 장소 검색...">
+                        <button type="button" id="btnPlaceSearch" class="btn-search">검색</button>
+                    </div>
+                    <div id="searchResults" class="search-results"></div>
                 </div>
 
-                <div class="form-group">
-                    <label for="location">위치 *</label>
-                    <input type="text" id="location" required placeholder="예) 서울시 강남구">
-                </div>
+                <!-- 방문 정보 폼 -->
+                <form id="formAddVisit">
+                    <input type="hidden" id="selectedPlaceId">
+                    <div class="form-group">
+                        <label>장소명 *</label>
+                        <input type="text" id="visitPlaceName" required placeholder="장소 이름">
+                    </div>
+                    <div class="form-group">
+                        <label>카테고리 *</label>
+                        <select id="visitCategory" required>
+                            <option value="">선택하세요</option>
+                            <option value="cafe">☕ 카페</option>
+                            <option value="restaurant">🍽️ 음식점</option>
+                            <option value="accommodation">🏨 숙소</option>
+                            <option value="attraction">🏞️ 관광지</option>
+                            <option value="shopping">🛍️ 쇼핑</option>
+                            <option value="transport">🚗 교통</option>
+                            <option value="other">기타</option>
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>방문일시 *</label>
+                            <input type="datetime-local" id="visitDate" required>
+                        </div>
+                        <div class="form-group">
+                            <label>평점</label>
+                            <select id="visitRating">
+                                <option value="">선택</option>
+                                <option value="5">⭐⭐⭐⭐⭐</option>
+                                <option value="4">⭐⭐⭐⭐</option>
+                                <option value="3">⭐⭐⭐</option>
+                                <option value="2">⭐⭐</option>
+                                <option value="1">⭐</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>주소</label>
+                        <input type="text" id="visitAddress" placeholder="주소">
+                    </div>
+                    <div class="form-group">
+                        <label>메모</label>
+                        <textarea id="visitNotes" rows="3" placeholder="방문 소감, 특이사항 등"></textarea>
+                    </div>
 
-                <div class="form-group">
-                    <label for="rating">평점</label>
-                    <select id="rating">
-                        <option value="">선택하세요</option>
-                        <option value="5">⭐⭐⭐⭐⭐ (5점)</option>
-                        <option value="4">⭐⭐⭐⭐ (4점)</option>
-                        <option value="3">⭐⭐⭐ (3점)</option>
-                        <option value="2">⭐⭐ (2점)</option>
-                        <option value="1">⭐ (1점)</option>
-                    </select>
-                </div>
+                    <h4>비용 항목</h4>
+                    <div id="expenseItems">
+                        <!-- 비용 항목들이 동적으로 추가됩니다 -->
+                    </div>
+                    <button type="button" class="btn-add-item" id="btnAddExpense">+ 비용 항목 추가</button>
 
-                <div class="form-group">
-                    <label for="description">설명</label>
-                    <textarea id="description" rows="3" placeholder="장소에 대한 간단한 설명을 입력하세요"></textarea>
-                </div>
-
-                <div class="form-group">
-                    <label for="tags">태그</label>
-                    <input type="text" id="tags" placeholder="예) 조용한, 넓은, 주차가능 (쉼표로 구분)">
-                </div>
-
-                <button type="submit" class="btn-primary">장소 추가</button>
-            </form>
-        </div>
-
-        <div class="filter-section">
-            <h2>장소 목록</h2>
-            <div class="filter-controls">
-                <select id="filterCategory">
-                    <option value="all">전체 보기</option>
-                    <option value="cafe">☕ 카페</option>
-                    <option value="restaurant">🍽️ 음식점</option>
-                    <option value="tourist">🏞️ 여행지</option>
-                </select>
-                <input type="text" id="searchInput" placeholder="장소명 또는 위치로 검색...">
-            </div>
-            <div class="stats">
-                <span>전체: <strong id="totalCount">0</strong></span>
-                <span>카페: <strong id="cafeCount">0</strong></span>
-                <span>음식점: <strong id="restaurantCount">0</strong></span>
-                <span>여행지: <strong id="touristCount">0</strong></span>
-            </div>
-        </div>
-
-        <div id="placesList" class="places-list">
-            <div class="empty-state">
-                <p>아직 등록된 장소가 없습니다.</p>
-                <p>위에서 새로운 장소를 추가해보세요!</p>
+                    <div class="modal-footer">
+                        <button type="button" class="btn-secondary" onclick="closeModal('modalAddVisit')">취소</button>
+                        <button type="submit" class="btn-primary">추가하기</button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- 환경 변수 설정 (config.js에서 로드) -->
+    <!-- 환경 변수 설정 -->
     <script src="config.js"></script>
     <script src="supabase-client.js"></script>
     <script src="app.js"></script>

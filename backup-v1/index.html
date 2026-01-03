@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>국내 장소 정보 모음</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Supabase JS Client -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🇰🇷 국내 장소 정보 모음</h1>
+            <p class="subtitle">카페, 음식점, 여행지 정보를 한곳에서!</p>
+        </header>
+
+        <div class="search-section">
+            <h2>🔍 네이버 지도에서 검색</h2>
+            <div class="naver-search">
+                <input type="text" id="naverSearchInput" placeholder="장소명을 입력하세요 (예: 강남 카페)">
+                <button type="button" id="naverSearchBtn" class="btn-search">검색</button>
+            </div>
+            <div id="searchResults" class="search-results"></div>
+        </div>
+
+        <div class="add-place-section">
+            <h2>새 장소 추가</h2>
+            <form id="placeForm">
+                <div class="form-group">
+                    <label for="placeName">장소명 *</label>
+                    <input type="text" id="placeName" required placeholder="예) 스타벅스 강남점">
+                </div>
+
+                <div class="form-group">
+                    <label for="category">카테고리 *</label>
+                    <select id="category" required>
+                        <option value="">선택하세요</option>
+                        <option value="cafe">☕ 카페</option>
+                        <option value="restaurant">🍽️ 음식점</option>
+                        <option value="tourist">🏞️ 여행지</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="location">위치 *</label>
+                    <input type="text" id="location" required placeholder="예) 서울시 강남구">
+                </div>
+
+                <div class="form-group">
+                    <label for="rating">평점</label>
+                    <select id="rating">
+                        <option value="">선택하세요</option>
+                        <option value="5">⭐⭐⭐⭐⭐ (5점)</option>
+                        <option value="4">⭐⭐⭐⭐ (4점)</option>
+                        <option value="3">⭐⭐⭐ (3점)</option>
+                        <option value="2">⭐⭐ (2점)</option>
+                        <option value="1">⭐ (1점)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="description">설명</label>
+                    <textarea id="description" rows="3" placeholder="장소에 대한 간단한 설명을 입력하세요"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="tags">태그</label>
+                    <input type="text" id="tags" placeholder="예) 조용한, 넓은, 주차가능 (쉼표로 구분)">
+                </div>
+
+                <button type="submit" class="btn-primary">장소 추가</button>
+            </form>
+        </div>
+
+        <div class="filter-section">
+            <h2>장소 목록</h2>
+            <div class="filter-controls">
+                <select id="filterCategory">
+                    <option value="all">전체 보기</option>
+                    <option value="cafe">☕ 카페</option>
+                    <option value="restaurant">🍽️ 음식점</option>
+                    <option value="tourist">🏞️ 여행지</option>
+                </select>
+                <input type="text" id="searchInput" placeholder="장소명 또는 위치로 검색...">
+            </div>
+            <div class="stats">
+                <span>전체: <strong id="totalCount">0</strong></span>
+                <span>카페: <strong id="cafeCount">0</strong></span>
+                <span>음식점: <strong id="restaurantCount">0</strong></span>
+                <span>여행지: <strong id="touristCount">0</strong></span>
+            </div>
+        </div>
+
+        <div id="placesList" class="places-list">
+            <div class="empty-state">
+                <p>아직 등록된 장소가 없습니다.</p>
+                <p>위에서 새로운 장소를 추가해보세요!</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 환경 변수 설정 (config.js에서 로드) -->
+    <script src="config.js"></script>
+    <script src="supabase-client.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
