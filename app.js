@@ -55,12 +55,12 @@ function initEventListeners() {
   // 방문 추가 폼 제출
   document.getElementById('formAddVisit').addEventListener('submit', handleAddVisit);
 
-  // 네이버 검색
-  document.getElementById('btnPlaceSearch').addEventListener('click', handleNaverSearch);
+  // 카카오 장소 검색
+  document.getElementById('btnPlaceSearch').addEventListener('click', handleKakaoSearch);
   document.getElementById('placeSearchInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
-      handleNaverSearch();
+      handleKakaoSearch();
     }
   });
 
@@ -374,10 +374,10 @@ function resetVisitForm() {
 }
 
 // ============================================
-// 네이버 검색
+// 카카오 장소 검색
 // ============================================
 
-async function handleNaverSearch() {
+async function handleKakaoSearch() {
   const query = document.getElementById('placeSearchInput').value.trim();
   if (!query) return;
 
@@ -565,7 +565,7 @@ async function autoScrapeFromUrl() {
   const btn = document.getElementById('btnAutoScrape');
 
   if (!url || !url.includes('place.naver.com')) {
-    showToast('올바른 네이버 플레이스 URL을 입력하세요', 'error');
+    showToast('올바른 플레이스 URL을 입력하세요', 'error');
     return;
   }
 
@@ -786,8 +786,8 @@ function handleWebShareTarget() {
   const sharedTitle = urlParams.get('title');
 
   if (sharedUrl || sharedText) {
-    // 네이버 플레이스 URL이 공유된 경우
-    if (sharedUrl && sharedUrl.includes('place.naver.com')) {
+    // 플레이스 URL이 공유된 경우 (네이버/카카오)
+    if (sharedUrl && (sharedUrl.includes('place.naver.com') || sharedUrl.includes('place.map.kakao.com'))) {
       // 방문 추가 모달 열기
       setTimeout(() => {
         openModal('modalAddVisit');
@@ -795,7 +795,7 @@ function handleWebShareTarget() {
         // URL 입력란에 자동 입력
         document.getElementById('autoScrapeUrl').value = sharedUrl;
 
-        showToast('네이버 플레이스 링크가 입력되었습니다. "자동으로 가져오기" 버튼을 눌러주세요!', 'success');
+        showToast('플레이스 링크가 입력되었습니다. "자동으로 가져오기" 버튼을 눌러주세요!', 'success');
       }, 500);
 
       // URL 파라미터 제거 (새로고침 시 재실행 방지)
