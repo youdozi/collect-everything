@@ -6,6 +6,7 @@
 let currentTrip = null;
 let currentView = 'trips'; // 'trips' or 'detail'
 let expenseItemCount = 0;
+let currentEditingVisit = null; // 수정 중인 방문 기록
 
 // 카테고리 이모지
 const CATEGORY_EMOJI = {
@@ -269,13 +270,21 @@ function createVisitItem(visit) {
   }
 
   return `
-    <div class="visit-item">
+    <div class="visit-item" data-visit-id="${visit.id}">
       <div class="visit-header">
         <div>
           <div class="visit-title">${visit.place.name}</div>
           <div class="visit-time">${visitDate}</div>
         </div>
-        <div class="visit-category">${category}</div>
+        <div class="visit-actions">
+          <span class="visit-category">${category}</span>
+          <button class="btn-icon" onclick="handleEditVisit('${visit.id}')" title="수정">
+            ✏️
+          </button>
+          <button class="btn-icon btn-delete" onclick="handleDeleteVisit('${visit.id}')" title="삭제">
+            🗑️
+          </button>
+        </div>
       </div>
       ${rating ? `<div class="visit-rating">${rating}</div>` : ''}
       ${visit.place.address ? `<div class="visit-location">📍 ${visit.place.address}</div>` : ''}
@@ -284,6 +293,89 @@ function createVisitItem(visit) {
     </div>
   `;
 }
+
+// ============================================
+// 방문 수정/삭제
+// ============================================
+
+// 방문 기록 삭제
+window.handleDeleteVisit = async function(visitId) {
+  if (!confirm('이 방문 기록을 삭제하시겠습니까?\n관련된 모든 비용 내역도 함께 삭제됩니다.')) {
+    return;
+  }
+
+  try {
+    await travelDB.deleteVisit(visitId);
+    await loadTripDetail(currentTrip.id);
+    showMessage('방문 기록이 삭제되었습니다', 'success');
+  } catch (error) {
+    console.error('Failed to delete visit:', error);
+    showMessage('삭제에 실패했습니다', 'error');
+  }
+};
+
+// 방문 기록 수정
+window.handleEditVisit = async function(visitId) {
+  try {
+    // 방문 기록 가져오기
+    const visits = await travelDB.getVisitsByTrip(currentTrip.id);
+    const visit = visits.find(v => v.id === visitId);
+
+    if (!visit) {
+      showMessage('방문 기록을 찾을 수 없습니다', 'error');
+      return;
+    }
+
+    // 수정 모드 설정
+    currentEditingVisit = visit;
+
+    // 모달 열기
+    openModal('modalAddVisit');
+
+    // 모달 제목 변경
+    const modalTitle = document.querySelector('#modalAddVisit h2');
+    if (modalTitle) {
+      modalTitle.textContent = '방문 기록 수정 ✏️';
+    }
+
+    // 폼에 기존 데이터 입력
+    document.getElementById('visitPlaceName').value = visit.place.name || '';
+    document.getElementById('visitCategory').value = visit.place.category || 'other';
+    document.getElementById('visitAddress').value = visit.place.address || '';
+
+    // 방문 날짜/시간
+    const visitDateTime = new Date(visit.visit_date).toISOString().slice(0, 16);
+    document.getElementById('visitDate').value = visitDateTime;
+
+    // 평점
+    document.getElementById('visitRating').value = visit.rating || '';
+
+    // 메모
+    document.getElementById('visitNotes').value = visit.notes || '';
+
+    // 기존 비용 항목 추가
+    const expenseContainer = document.getElementById('expenseItems');
+    expenseContainer.innerHTML = '';
+
+    if (visit.expenses && visit.expenses.length > 0) {
+      visit.expenses.forEach(expense => {
+        addExpenseRow(expense.item_name, expense.price, expense.quantity);
+      });
+    }
+
+    // 제출 버튼 텍스트 변경
+    const submitBtn = document.querySelector('#formAddVisit button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.textContent = '수정 완료';
+    }
+
+    showMessage('수정할 내용을 변경하고 "수정 완료"를 눌러주세요', 'success');
+
+  } catch (error) {
+    console.error('Failed to load visit for editing:', error);
+    showMessage('방문 기록을 불러올 수 없습니다', 'error');
+  }
+};
 
 // ============================================
 // 방문 추가
@@ -298,6 +390,9 @@ async function handleAddVisit(e) {
   }
 
   try {
+    // 수정 모드인지 확인
+    const isEditMode = currentEditingVisit !== null;
+
     // 1. 장소 추가 또는 기존 장소 가져오기
     const placeData = {
       name: document.getElementById('visitPlaceName').value,
@@ -308,7 +403,7 @@ async function handleAddVisit(e) {
 
     const place = await travelDB.upsertPlace(placeData);
 
-    // 2. 방문 기록 추가
+    // 2. 방문 기록 추가 또는 수정
     const visitData = {
       trip_id: currentTrip.id,
       place_id: place.id,
@@ -318,7 +413,21 @@ async function handleAddVisit(e) {
       notes: document.getElementById('visitNotes').value
     };
 
-    const visit = await travelDB.addVisit(visitData);
+    let visit;
+    if (isEditMode) {
+      // 수정 모드: 기존 방문 기록 업데이트
+      visit = await travelDB.updateVisit(currentEditingVisit.id, visitData);
+
+      // 기존 비용 항목 삭제 (새로 추가할 것이므로)
+      if (currentEditingVisit.expenses && currentEditingVisit.expenses.length > 0) {
+        for (const expense of currentEditingVisit.expenses) {
+          await travelDB.deleteExpense(expense.id);
+        }
+      }
+    } else {
+      // 생성 모드: 새 방문 기록 추가
+      visit = await travelDB.addVisit(visitData);
+    }
 
     // 3. 비용 항목 추가
     const expenses = collectExpenseData(visit.id);
@@ -329,10 +438,15 @@ async function handleAddVisit(e) {
     // 완료
     closeModal('modalAddVisit');
     await loadTripDetail(currentTrip.id);
-    showMessage('방문 기록이 추가되었습니다! 📝');
+
+    if (isEditMode) {
+      showMessage('방문 기록이 수정되었습니다! ✏️');
+    } else {
+      showMessage('방문 기록이 추가되었습니다! 📝');
+    }
   } catch (error) {
-    console.error('Failed to add visit:', error);
-    showMessage('방문 추가에 실패했습니다', 'error');
+    console.error('Failed to save visit:', error);
+    showMessage(currentEditingVisit ? '방문 수정에 실패했습니다' : '방문 추가에 실패했습니다', 'error');
   }
 }
 
@@ -366,6 +480,20 @@ function resetVisitForm() {
   document.getElementById('searchResults').innerHTML = '';
   document.getElementById('expenseItems').innerHTML = '';
   expenseItemCount = 0;
+
+  // 수정 모드 초기화
+  currentEditingVisit = null;
+
+  // 모달 제목 및 버튼 텍스트 복원
+  const modalTitle = document.querySelector('#modalAddVisit h2');
+  if (modalTitle) {
+    modalTitle.textContent = '방문 기록 추가';
+  }
+
+  const submitBtn = document.querySelector('#formAddVisit button[type="submit"]');
+  if (submitBtn) {
+    submitBtn.textContent = '추가';
+  }
 
   // 현재 날짜/시간 설정
   const now = new Date();
@@ -452,7 +580,7 @@ window.selectPlace = function(index) {
 // 비용 항목 관리
 // ============================================
 
-function addExpenseRow() {
+function addExpenseRow(itemName = '', itemPrice = '', itemQuantity = 1) {
   const container = document.getElementById('expenseItems');
   const rowId = ++expenseItemCount;
 
@@ -460,13 +588,13 @@ function addExpenseRow() {
   row.className = 'expense-input-row';
   row.innerHTML = `
     <div class="form-group" style="margin: 0;">
-      <input type="text" name="expenseName" placeholder="항목명 (예: 아메리카노)" required>
+      <input type="text" name="expenseName" placeholder="항목명 (예: 아메리카노)" value="${itemName}" required>
     </div>
     <div class="form-group" style="margin: 0;">
-      <input type="number" name="expensePrice" placeholder="가격" min="0" required>
+      <input type="number" name="expensePrice" placeholder="가격" value="${itemPrice}" min="0" required>
     </div>
     <div class="form-group" style="margin: 0;">
-      <input type="number" name="expenseQuantity" placeholder="수량" min="1" value="1">
+      <input type="number" name="expenseQuantity" placeholder="수량" value="${itemQuantity || 1}" min="1">
     </div>
     <button type="button" class="btn-remove" onclick="removeExpenseRow(this)">×</button>
   `;
@@ -760,22 +888,6 @@ function detectCategory(categoryText) {
   }
 
   return null;
-}
-
-// 비용 항목 행 추가 (자동화에서 호출용)
-function addExpenseRow(itemName = '', itemPrice = '') {
-  const container = document.getElementById('expenseItems');
-  const row = document.createElement('div');
-  row.className = 'expense-row';
-
-  row.innerHTML = `
-    <input type="text" placeholder="항목명" value="${itemName}" class="expense-item-name">
-    <input type="number" placeholder="금액" value="${itemPrice}" class="expense-item-price" min="0">
-    <input type="number" placeholder="수량" value="1" class="expense-item-quantity" min="1">
-    <button type="button" class="btn-remove-item" onclick="this.parentElement.remove()">×</button>
-  `;
-
-  container.appendChild(row);
 }
 
 // ============================================

@@ -316,6 +316,32 @@ body {
 
 .visit-category {
     font-size: 1.5em;
+    margin-right: 8px;
+}
+
+.visit-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-icon {
+    background: transparent;
+    border: none;
+    font-size: 1.3em;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    transition: background-color 0.2s, transform 0.1s;
+}
+
+.btn-icon:hover {
+    background-color: rgba(102, 126, 234, 0.1);
+    transform: scale(1.1);
+}
+
+.btn-icon.btn-delete:hover {
+    background-color: rgba(220, 53, 69, 0.1);
 }
 
 .visit-time {
