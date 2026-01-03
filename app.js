@@ -8,6 +8,64 @@ let currentView = 'trips'; // 'trips' or 'detail'
 let expenseItemCount = 0;
 let currentEditingVisit = null; // 수정 중인 방문 기록
 
+// ============================================
+// 메모리 캐시 시스템
+// ============================================
+
+const DataCache = {
+  _cache: {},
+  _ttl: 5 * 60 * 1000, // 5분 TTL
+
+  // 캐시 저장
+  set(key, data) {
+    this._cache[key] = {
+      data: data,
+      timestamp: Date.now()
+    };
+  },
+
+  // 캐시 조회
+  get(key) {
+    const cached = this._cache[key];
+    if (!cached) return null;
+
+    // TTL 체크
+    const age = Date.now() - cached.timestamp;
+    if (age > this._ttl) {
+      delete this._cache[key];
+      return null;
+    }
+
+    return cached.data;
+  },
+
+  // 특정 캐시 무효화
+  invalidate(key) {
+    delete this._cache[key];
+  },
+
+  // 패턴으로 캐시 무효화 (예: 'trip:123' 관련 모든 캐시)
+  invalidatePattern(pattern) {
+    Object.keys(this._cache).forEach(key => {
+      if (key.includes(pattern)) {
+        delete this._cache[key];
+      }
+    });
+  },
+
+  // 전체 캐시 클리어
+  clear() {
+    this._cache = {};
+  },
+
+  // 캐시 상태 확인 (디버깅용)
+  status() {
+    const keys = Object.keys(this._cache);
+    console.log(`📦 캐시 상태: ${keys.length}개 항목`, keys);
+    return keys;
+  }
+};
+
 // 카테고리 이모지
 const CATEGORY_EMOJI = {
   cafe: '☕',
@@ -113,7 +171,23 @@ window.closeModal = closeModal;
 
 async function loadTrips() {
   try {
-    const trips = await travelDB.getAllTrips();
+    // 캐시 확인
+    const cacheKey = 'trips:all';
+    let trips = DataCache.get(cacheKey);
+
+    if (trips) {
+      console.log('✅ 캐시에서 여행 목록 로드');
+      renderTrips(trips);
+      return;
+    }
+
+    // 캐시 미스 - DB 조회
+    console.log('📡 DB에서 여행 목록 로드');
+    trips = await travelDB.getAllTrips();
+
+    // 캐시 저장
+    DataCache.set(cacheKey, trips);
+
     renderTrips(trips);
   } catch (error) {
     console.error('Failed to load trips:', error);
@@ -135,6 +209,10 @@ async function handleAddTrip(e) {
 
   try {
     await travelDB.addTrip(tripData);
+
+    // 여행 목록 캐시 무효화
+    DataCache.invalidate('trips:all');
+
     closeModal('modalNewTrip');
     document.getElementById('formNewTrip').reset();
     await loadTrips();
@@ -204,10 +282,26 @@ window.showTripDetail = async function(tripId) {
 
 async function loadTripDetail(tripId) {
   try {
-    const [trip, visits] = await Promise.all([
-      travelDB.getTrip(tripId),
-      travelDB.getVisitsByTrip(tripId)
-    ]);
+    // 캐시 확인
+    const cacheKey = `trip:${tripId}:detail`;
+    let cachedData = DataCache.get(cacheKey);
+
+    let trip, visits;
+
+    if (cachedData) {
+      console.log(`✅ 캐시에서 여행 상세 로드 (ID: ${tripId})`);
+      trip = cachedData.trip;
+      visits = cachedData.visits;
+    } else {
+      console.log(`📡 DB에서 여행 상세 로드 (ID: ${tripId})`);
+      [trip, visits] = await Promise.all([
+        travelDB.getTrip(tripId),
+        travelDB.getVisitsByTrip(tripId)
+      ]);
+
+      // 캐시 저장
+      DataCache.set(cacheKey, { trip, visits });
+    }
 
     // 헤더 업데이트
     document.getElementById('detailTripTitle').textContent = trip.title;
@@ -306,6 +400,11 @@ window.handleDeleteVisit = async function(visitId) {
 
   try {
     await travelDB.deleteVisit(visitId);
+
+    // 캐시 무효화 (여행 상세 + 여행 목록)
+    DataCache.invalidate(`trip:${currentTrip.id}:detail`);
+    DataCache.invalidate('trips:all');
+
     await loadTripDetail(currentTrip.id);
     showMessage('방문 기록이 삭제되었습니다', 'success');
   } catch (error) {
@@ -437,6 +536,11 @@ async function handleAddVisit(e) {
 
     // 완료
     closeModal('modalAddVisit');
+
+    // 캐시 무효화 (여행 상세 + 여행 목록)
+    DataCache.invalidate(`trip:${currentTrip.id}:detail`);
+    DataCache.invalidate('trips:all');
+
     await loadTripDetail(currentTrip.id);
 
     if (isEditMode) {
@@ -510,9 +614,21 @@ async function handleKakaoSearch() {
   if (!query) return;
 
   const resultsContainer = document.getElementById('searchResults');
+
+  // 캐시 확인
+  const cacheKey = `search:${query}`;
+  let places = DataCache.get(cacheKey);
+
+  if (places) {
+    console.log(`✅ 캐시에서 검색 결과 로드: "${query}"`);
+    renderSearchResults(places);
+    return;
+  }
+
   resultsContainer.innerHTML = '<div class="search-loading">🔍 검색 중...</div>';
 
   try {
+    console.log(`📡 API 검색 중: "${query}"`);
     const response = await fetch(`/api/search-place?query=${encodeURIComponent(query)}`);
     if (!response.ok) throw new Error('Search failed');
 
@@ -522,6 +638,9 @@ async function handleKakaoSearch() {
       resultsContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다</div>';
       return;
     }
+
+    // 캐시 저장
+    DataCache.set(cacheKey, data.places);
 
     renderSearchResults(data.places);
   } catch (error) {
@@ -630,7 +749,15 @@ function showDetailView() {
 
 async function handleTripFilter() {
   const filter = document.getElementById('tripFilter').value;
-  const trips = await travelDB.getAllTrips();
+
+  // 캐시에서 가져오거나 DB 조회
+  const cacheKey = 'trips:all';
+  let trips = DataCache.get(cacheKey);
+
+  if (!trips) {
+    trips = await travelDB.getAllTrips();
+    DataCache.set(cacheKey, trips);
+  }
 
   let filtered = trips;
   const now = new Date();
@@ -647,6 +774,13 @@ async function handleTripFilter() {
 // ============================================
 // 유틸리티
 // ============================================
+
+// 캐시 디버깅 함수 전역 노출
+window.cacheStatus = () => DataCache.status();
+window.clearCache = () => {
+  DataCache.clear();
+  console.log('🗑️ 모든 캐시가 삭제되었습니다');
+};
 
 function showMessage(message, type = 'success') {
   const existingMessage = document.querySelector('.toast-message');
