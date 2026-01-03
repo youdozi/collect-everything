@@ -646,6 +646,28 @@ body.viewer-mode .btn-add-visit {
     background: #02b350;
 }
 
+.btn-nearby {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-nearby:hover:not(:disabled) {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.btn-nearby:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .search-results {
     margin-top: 16px;
     max-height: 300px;

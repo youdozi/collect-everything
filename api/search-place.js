@@ -17,11 +17,13 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { query } = req.query;
+  const { query, lat, lng, radius } = req.query;
 
-  // 쿼리 파라미터 검증
-  if (!query) {
-    return res.status(400).json({ error: 'Query parameter is required' });
+  // 쿼리 파라미터 검증 (query 또는 lat/lng 중 하나는 필수)
+  if (!query && (!lat || !lng)) {
+    return res.status(400).json({
+      error: 'Either query or lat/lng parameters are required'
+    });
   }
 
   // 환경 변수 확인
@@ -36,15 +38,24 @@ export default async function handler(req, res) {
   }
 
   try {
+    let apiUrl;
+
+    // 좌표 기반 검색 (GPS)
+    if (lat && lng) {
+      const searchRadius = radius || 500; // 기본 500m
+      apiUrl = `https://dapi.kakao.com/v2/local/search/category.json?category_group_code=&x=${lng}&y=${lat}&radius=${searchRadius}&size=15&sort=distance`;
+    }
+    // 키워드 검색
+    else {
+      apiUrl = `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=10`;
+    }
+
     // 카카오 로컬 검색 API 호출
-    const response = await fetch(
-      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=10`,
-      {
-        headers: {
-          'Authorization': `KakaoAK ${restApiKey}`
-        }
+    const response = await fetch(apiUrl, {
+      headers: {
+        'Authorization': `KakaoAK ${restApiKey}`
       }
-    );
+    });
 
     if (!response.ok) {
       const errorText = await response.text();

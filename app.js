@@ -144,6 +144,7 @@ function initEventListeners() {
 
   // 카카오 장소 검색
   document.getElementById('btnPlaceSearch').addEventListener('click', handleKakaoSearch);
+  document.getElementById('btnNearbySearch').addEventListener('click', handleNearbySearch);
   document.getElementById('placeSearchInput').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       e.preventDefault();
@@ -175,13 +176,15 @@ function initEventListeners() {
 // 모달 관리
 // ============================================
 
-function openModal(modalId) {
+async function openModal(modalId) {
   const modal = document.getElementById(modalId);
   modal.classList.add('active');
 
   // 모달이 열릴 때 초기화
   if (modalId === 'modalAddVisit') {
     resetVisitForm();
+    // 클립보드 자동 감지
+    await handleClipboardDetection();
   }
 }
 
@@ -853,6 +856,155 @@ window.selectPlace = function(index) {
 
   showMessage('장소가 선택되었습니다', 'success');
 };
+
+// ============================================
+// GPS 위치 기반 검색
+// ============================================
+
+async function handleNearbySearch() {
+  const resultsContainer = document.getElementById('searchResults');
+  const btn = document.getElementById('btnNearbySearch');
+
+  // 위치 권한 확인
+  if (!navigator.geolocation) {
+    showMessage('이 브라우저는 위치 서비스를 지원하지 않습니다', 'error');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = '📍 위치 확인 중...';
+  resultsContainer.innerHTML = '<div class="search-loading">🌍 현재 위치를 확인하는 중...</div>';
+
+  try {
+    // 현재 위치 가져오기
+    const position = await new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(resolve, reject, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+      });
+    });
+
+    const { latitude, longitude } = position.coords;
+    console.log(`📍 현재 위치: ${latitude}, ${longitude}`);
+
+    resultsContainer.innerHTML = '<div class="search-loading">🔍 근처 장소 검색 중...</div>';
+
+    // 카카오 로컬 API로 반경 검색
+    const response = await fetch(
+      `/api/search-place?lat=${latitude}&lng=${longitude}&radius=500`
+    );
+
+    if (!response.ok) throw new Error('Search failed');
+
+    const data = await response.json();
+
+    if (!data.places || data.places.length === 0) {
+      resultsContainer.innerHTML = '<div class="search-loading">근처에 등록된 장소가 없습니다</div>';
+      return;
+    }
+
+    // 검색 결과 표시
+    renderSearchResults(data.places);
+    showMessage(`반경 500m 내 ${data.places.length}개 장소 발견!`, 'success');
+
+  } catch (error) {
+    console.error('Nearby search error:', error);
+
+    if (error.code === 1) {
+      // PERMISSION_DENIED
+      resultsContainer.innerHTML = `
+        <div class="search-error">
+          📍 위치 권한이 거부되었습니다.<br>
+          브라우저 설정에서 위치 권한을 허용해주세요.
+        </div>
+      `;
+      showMessage('위치 권한을 허용해주세요', 'error');
+    } else if (error.code === 2) {
+      // POSITION_UNAVAILABLE
+      showMessage('위치를 확인할 수 없습니다', 'error');
+    } else if (error.code === 3) {
+      // TIMEOUT
+      showMessage('위치 확인 시간이 초과되었습니다', 'error');
+    } else {
+      resultsContainer.innerHTML = `
+        <div class="search-error">
+          근처 장소 검색 중 오류가 발생했습니다
+        </div>
+      `;
+      showMessage('검색 중 오류가 발생했습니다', 'error');
+    }
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '📍 내 위치';
+  }
+}
+
+// ============================================
+// 클립보드 자동 감지
+// ============================================
+
+async function handleClipboardDetection() {
+  // Clipboard API 지원 확인
+  if (!navigator.clipboard || !navigator.clipboard.readText) {
+    console.log('Clipboard API not supported');
+    return;
+  }
+
+  try {
+    // 클립보드 읽기 (권한 필요)
+    const clipboardText = await navigator.clipboard.readText();
+
+    if (!clipboardText || clipboardText.trim().length === 0) {
+      return;
+    }
+
+    console.log('📋 클립보드 텍스트 감지:', clipboardText.substring(0, 100));
+
+    // 메뉴 형식 감지
+    const parsedMenus = parseMenuText(clipboardText);
+
+    if (parsedMenus && parsedMenus.length > 0) {
+      // 메뉴가 감지되면 사용자에게 물어보기
+      const confirmed = confirm(
+        `📋 클립보드에서 ${parsedMenus.length}개의 메뉴를 발견했습니다!\n\n` +
+        parsedMenus.slice(0, 3).map(m => `${m.name}: ${m.price.toLocaleString()}원`).join('\n') +
+        (parsedMenus.length > 3 ? `\n... 외 ${parsedMenus.length - 3}개` : '') +
+        '\n\n자동으로 추가하시겠습니까?'
+      );
+
+      if (confirmed) {
+        // 자동으로 메뉴 추가
+        parsedMenus.forEach(menu => {
+          addExpenseRow(menu.name, menu.price, 1);
+        });
+
+        showMessage(`${parsedMenus.length}개 메뉴가 자동으로 추가되었습니다! 📋`, 'success');
+      }
+    } else {
+      // 메뉴는 아니지만 장소 이름이나 주소일 수 있음
+      // 간단한 휴리스틱: 짧고(100자 이하) 한 줄이면 장소명일 가능성
+      if (clipboardText.length < 100 && !clipboardText.includes('\n')) {
+        const confirmed = confirm(
+          `📋 클립보드 내용:\n"${clipboardText}"\n\n장소 이름으로 사용하시겠습니까?`
+        );
+
+        if (confirmed) {
+          document.getElementById('visitPlaceName').value = clipboardText.trim();
+          showMessage('클립보드 내용이 장소 이름으로 입력되었습니다', 'success');
+        }
+      }
+    }
+
+  } catch (error) {
+    // 권한 거부 등의 에러는 조용히 무시
+    if (error.name === 'NotAllowedError') {
+      console.log('Clipboard access denied');
+    } else {
+      console.error('Clipboard detection error:', error);
+    }
+  }
+}
 
 // ============================================
 // 비용 항목 관리
