@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   // 이벤트 리스너 등록
   initEventListeners();
 
+  // Web Share Target 처리 (iOS/Android 공유 기능)
+  handleWebShareTarget();
+
   // 여행 목록 로드
   await loadTrips();
 });
@@ -62,10 +65,23 @@ function initEventListeners() {
   });
 
   // 비용 항목 추가
-  document.getElementById('btnAddExpense').addEventListener('click', addExpenseRow);
+  document.getElementById('btnAddExpense').addEventListener('click', () => addExpenseRow());
 
   // 여행 필터
   document.getElementById('tripFilter').addEventListener('change', handleTripFilter);
+
+  // 자동화 메뉴 입력 이벤트 리스너
+  // 방법 1: URL 자동 스크래핑
+  document.getElementById('btnAutoScrape').addEventListener('click', autoScrapeFromUrl);
+
+  // 방법 2: 스크린샷 OCR
+  document.getElementById('btnUploadScreenshot').addEventListener('click', () => {
+    document.getElementById('menuScreenshot').click();
+  });
+  document.getElementById('menuScreenshot').addEventListener('change', handleScreenshotOCR);
+
+  // 방법 3: 텍스트 파싱
+  document.getElementById('btnParseText').addEventListener('click', handleTextParse);
 }
 
 // ============================================
@@ -539,24 +555,263 @@ function showMessage(message, type = 'success') {
 }
 
 // ============================================
-// MCP 웹 스크래핑 (선택적 기능)
+// 자동화 메뉴 입력 - 3가지 방법
 // ============================================
 
-// 이 함수는 MCP 웹 브라우저가 설정되어 있을 때만 작동합니다
-// 사용자가 "메뉴 자동 가져오기" 버튼을 클릭하면 Claude에게 요청하는 방식
-async function scrapeMenuWithMCP(placeUrl) {
-  // MCP를 사용한 스크래핑은 Claude에게 직접 요청
-  // 예: "이 네이버 플레이스 링크에서 메뉴와 가격 가져와줘"
-  // Claude가 브라우저를 조작해서 정보를 수집하고 JSON으로 반환
+// 방법 1: Playwright 서버 스크래핑
+async function autoScrapeFromUrl() {
+  const urlInput = document.getElementById('autoScrapeUrl');
+  const url = urlInput.value.trim();
+  const btn = document.getElementById('btnAutoScrape');
 
-  // 실제 구현은 백엔드 API 또는 Claude와의 통신이 필요
-  console.log('MCP scraping would be triggered for:', placeUrl);
+  if (!url || !url.includes('place.naver.com')) {
+    showToast('올바른 네이버 플레이스 URL을 입력하세요', 'error');
+    return;
+  }
 
-  // 예상 반환 형식:
-  // return {
-  //   menus: [
-  //     { name: "아메리카노", price: 4500 },
-  //     { name: "카페라떼", price: 5000 }
-  //   ]
-  // };
+  btn.disabled = true;
+  btn.textContent = '가져오는 중...';
+  btn.classList.add('loading');
+
+  try {
+    const response = await fetch(`/api/scrape-naver-place?placeUrl=${encodeURIComponent(url)}`);
+    const result = await response.json();
+
+    if (!result.success) {
+      throw new Error(result.error || '데이터를 가져올 수 없습니다');
+    }
+
+    const { place, menus } = result.data;
+
+    // 장소 정보 자동 입력
+    if (place.name) document.getElementById('visitPlaceName').value = place.name;
+    if (place.address) document.getElementById('visitAddress').value = place.address;
+
+    // 카테고리 자동 선택
+    if (place.category) {
+      const category = detectCategory(place.category);
+      if (category) document.getElementById('visitCategory').value = category;
+    }
+
+    // 메뉴 자동 추가
+    if (menus && menus.length > 0) {
+      menus.forEach(menu => {
+        if (menu.price && menu.price > 0) {
+          addExpenseRow(menu.name, menu.price);
+        }
+      });
+      showToast(`${menus.length}개 메뉴가 자동으로 추가되었습니다!`, 'success');
+    } else {
+      showToast('장소 정보는 입력되었으나 메뉴를 찾을 수 없습니다', 'warning');
+    }
+
+    urlInput.value = '';
+
+  } catch (error) {
+    console.error('Auto scrape error:', error);
+    showToast(error.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '자동으로 가져오기';
+    btn.classList.remove('loading');
+  }
+}
+
+// 방법 2: Tesseract.js OCR
+async function handleScreenshotOCR() {
+  const fileInput = document.getElementById('menuScreenshot');
+  const file = fileInput.files[0];
+  const statusDiv = document.getElementById('ocrStatus');
+
+  if (!file) {
+    showToast('이미지를 선택하세요', 'error');
+    return;
+  }
+
+  statusDiv.className = 'ocr-status loading';
+  statusDiv.textContent = '📸 이미지 분석 중... (10-20초 소요)';
+
+  try {
+    const worker = await Tesseract.createWorker('kor');
+
+    const { data: { text } } = await worker.recognize(file, {
+      logger: info => {
+        if (info.status === 'recognizing text') {
+          const progress = Math.round(info.progress * 100);
+          statusDiv.textContent = `📸 이미지 분석 중... ${progress}%`;
+        }
+      }
+    });
+
+    await worker.terminate();
+
+    // 텍스트에서 메뉴 파싱
+    const menus = parseMenuText(text);
+
+    if (menus.length > 0) {
+      menus.forEach(menu => addExpenseRow(menu.name, menu.price));
+      statusDiv.className = 'ocr-status success';
+      statusDiv.textContent = `✅ ${menus.length}개 메뉴가 인식되었습니다!`;
+      showToast(`${menus.length}개 메뉴 추가 완료`, 'success');
+    } else {
+      statusDiv.className = 'ocr-status error';
+      statusDiv.textContent = '❌ 메뉴를 찾을 수 없습니다. 직접 입력해주세요.';
+      showToast('메뉴를 인식하지 못했습니다', 'warning');
+    }
+
+    fileInput.value = '';
+
+  } catch (error) {
+    console.error('OCR error:', error);
+    statusDiv.className = 'ocr-status error';
+    statusDiv.textContent = '❌ 이미지 분석 실패';
+    showToast('OCR 처리 중 오류가 발생했습니다', 'error');
+  }
+}
+
+// 방법 3: 텍스트 파싱
+function handleTextParse() {
+  const textarea = document.getElementById('menuTextInput');
+  const text = textarea.value.trim();
+
+  if (!text) {
+    showToast('텍스트를 입력하세요', 'error');
+    return;
+  }
+
+  const menus = parseMenuText(text);
+
+  if (menus.length > 0) {
+    menus.forEach(menu => addExpenseRow(menu.name, menu.price));
+    showToast(`${menus.length}개 메뉴가 추가되었습니다!`, 'success');
+    textarea.value = '';
+  } else {
+    showToast('메뉴 형식을 인식할 수 없습니다.\n예: "아메리카노 4,500원"', 'error');
+  }
+}
+
+// 텍스트에서 메뉴/가격 파싱
+function parseMenuText(text) {
+  const menus = [];
+
+  // 정규식 패턴들
+  const patterns = [
+    // "아메리카노 4,500원" 또는 "아메리카노 4500원"
+    /(.+?)\s+([\d,]+)\s*원/g,
+    // "아메리카노 - 4,500" 또는 "아메리카노: 4500"
+    /(.+?)\s*[:-]\s*([\d,]+)/g,
+    // "4,500 아메리카노" (가격이 먼저)
+    /([\d,]+)\s*원?\s+(.+)/g,
+  ];
+
+  for (const pattern of patterns) {
+    let match;
+    while ((match = pattern.exec(text)) !== null) {
+      let name, priceText;
+
+      if (pattern.source.startsWith('([')) {
+        // 가격이 먼저인 패턴
+        priceText = match[1];
+        name = match[2];
+      } else {
+        // 이름이 먼저인 패턴
+        name = match[1];
+        priceText = match[2];
+      }
+
+      const cleanName = name.trim().replace(/[•\-*]/g, '').trim();
+      const price = parseInt(priceText.replace(/[^0-9]/g, ''));
+
+      if (cleanName && price && price > 0 && price < 1000000) {
+        // 중복 제거
+        if (!menus.find(m => m.name === cleanName)) {
+          menus.push({ name: cleanName, price });
+        }
+      }
+    }
+
+    if (menus.length > 0) break;
+  }
+
+  return menus;
+}
+
+// 카테고리 자동 감지
+function detectCategory(categoryText) {
+  const text = categoryText.toLowerCase();
+
+  if (text.includes('카페') || text.includes('cafe') || text.includes('coffee')) {
+    return 'cafe';
+  }
+  if (text.includes('음식') || text.includes('식당') || text.includes('restaurant')) {
+    return 'restaurant';
+  }
+  if (text.includes('숙소') || text.includes('호텔') || text.includes('모텔') || text.includes('펜션')) {
+    return 'accommodation';
+  }
+  if (text.includes('관광') || text.includes('명소') || text.includes('여행')) {
+    return 'attraction';
+  }
+  if (text.includes('쇼핑') || text.includes('마트') || text.includes('백화점')) {
+    return 'shopping';
+  }
+
+  return null;
+}
+
+// 비용 항목 행 추가 (자동화에서 호출용)
+function addExpenseRow(itemName = '', itemPrice = '') {
+  const container = document.getElementById('expenseItems');
+  const row = document.createElement('div');
+  row.className = 'expense-row';
+
+  row.innerHTML = `
+    <input type="text" placeholder="항목명" value="${itemName}" class="expense-item-name">
+    <input type="number" placeholder="금액" value="${itemPrice}" class="expense-item-price" min="0">
+    <input type="number" placeholder="수량" value="1" class="expense-item-quantity" min="1">
+    <button type="button" class="btn-remove-item" onclick="this.parentElement.remove()">×</button>
+  `;
+
+  container.appendChild(row);
+}
+
+// ============================================
+// Web Share Target API (iOS/Android 공유)
+// ============================================
+
+function handleWebShareTarget() {
+  const urlParams = new URLSearchParams(window.location.search);
+  const sharedUrl = urlParams.get('url');
+  const sharedText = urlParams.get('text');
+  const sharedTitle = urlParams.get('title');
+
+  if (sharedUrl || sharedText) {
+    // 네이버 플레이스 URL이 공유된 경우
+    if (sharedUrl && sharedUrl.includes('place.naver.com')) {
+      // 방문 추가 모달 열기
+      setTimeout(() => {
+        openModal('modalAddVisit');
+
+        // URL 입력란에 자동 입력
+        document.getElementById('autoScrapeUrl').value = sharedUrl;
+
+        showToast('네이버 플레이스 링크가 입력되었습니다. "자동으로 가져오기" 버튼을 눌러주세요!', 'success');
+      }, 500);
+
+      // URL 파라미터 제거 (새로고침 시 재실행 방지)
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    // 텍스트가 공유된 경우 (메뉴 목록 등)
+    else if (sharedText) {
+      setTimeout(() => {
+        openModal('modalAddVisit');
+        document.getElementById('menuTextInput').value = sharedText;
+
+        showToast('텍스트가 입력되었습니다. "자동 변환" 버튼을 눌러주세요!', 'success');
+      }, 500);
+
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }
 }

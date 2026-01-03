@@ -18,7 +18,14 @@
   ],
   "author": "",
   "license": "MIT",
+  "dependencies": {
+    "@sparticuz/chromium": "^119.0.2",
+    "playwright-core": "^1.40.1"
+  },
   "devDependencies": {
     "vercel": "^33.0.0"
+  },
+  "engines": {
+    "node": ">=18.x"
   }
 }

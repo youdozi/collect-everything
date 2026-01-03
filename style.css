@@ -672,3 +672,208 @@ body {
     font-size: 1.1em;
     margin: 8px 0;
 }
+
+/* ============================================
+   자동화 메뉴 입력 UI
+   ============================================ */
+
+.auto-input-section {
+    margin: 20px 0;
+    padding: 20px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
+}
+
+.auto-input-section h4 {
+    margin: 0 0 16px 0;
+    color: #495057;
+    font-size: 1.1em;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auto-methods {
+    display: grid;
+    gap: 16px;
+}
+
+.method-card {
+    background: white;
+    border-radius: 8px;
+    padding: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+}
+
+.method-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+}
+
+.method-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.method-icon {
+    font-size: 1.5em;
+}
+
+.method-title {
+    font-weight: 600;
+    color: #212529;
+    flex: 1;
+}
+
+.method-badge {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 600;
+}
+
+.method-card:nth-child(2) .method-badge {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.method-card:nth-child(3) .method-badge {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.method-body {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.method-input {
+    width: 100%;
+    padding: 10px 14px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+}
+
+.method-input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.method-input::placeholder {
+    color: #adb5bd;
+}
+
+.btn-method {
+    padding: 10px 20px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.btn-method:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-method:active {
+    transform: translateY(0);
+}
+
+.btn-method:disabled {
+    background: #dee2e6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.method-hint {
+    color: #6c757d;
+    font-size: 0.85em;
+    line-height: 1.4;
+}
+
+.ocr-status {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    display: none;
+}
+
+.ocr-status.loading {
+    display: block;
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.ocr-status.success {
+    display: block;
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.ocr-status.error {
+    display: block;
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.divider {
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #dee2e6, transparent);
+    margin: 24px 0;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    .auto-input-section {
+        padding: 16px;
+    }
+
+    .method-card {
+        padding: 12px;
+    }
+
+    .method-icon {
+        font-size: 1.3em;
+    }
+
+    .method-title {
+        font-size: 0.95em;
+    }
+
+    .method-badge {
+        font-size: 0.7em;
+        padding: 3px 8px;
+    }
+}
+
+/* 로딩 애니메이션 */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.btn-method.loading::after {
+    content: '...';
+    animation: pulse 1.5s ease-in-out infinite;
+}
