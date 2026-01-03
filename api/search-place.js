@@ -1,4 +1,4 @@
-// 네이버 지도 API 검색 프록시
+// 카카오 로컬 API 검색 프록시
 export default async function handler(req, res) {
   // CORS 헤더 설정
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -25,54 +25,59 @@ export default async function handler(req, res) {
   }
 
   // 환경 변수 확인
-  const clientId = process.env.NAVER_CLIENT_ID;
-  const clientSecret = process.env.NAVER_CLIENT_SECRET;
+  const restApiKey = process.env.KAKAO_REST_API_KEY;
 
-  if (!clientId || !clientSecret) {
-    console.error('Missing Naver API credentials');
+  if (!restApiKey) {
+    console.error('Missing Kakao API credentials');
     return res.status(500).json({
       error: 'Server configuration error',
-      message: 'Naver API credentials not configured'
+      message: 'Kakao REST API key not configured'
     });
   }
 
   try {
-    // 네이버 지역 검색 API 호출
+    // 카카오 로컬 검색 API 호출
     const response = await fetch(
-      `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=10&sort=random`,
+      `https://dapi.kakao.com/v2/local/search/keyword.json?query=${encodeURIComponent(query)}&size=10`,
       {
         headers: {
-          'X-Naver-Client-Id': clientId,
-          'X-Naver-Client-Secret': clientSecret
+          'Authorization': `KakaoAK ${restApiKey}`
         }
       }
     );
 
     if (!response.ok) {
-      throw new Error(`Naver API error: ${response.status}`);
+      const errorText = await response.text();
+      console.error('Kakao API error:', response.status, errorText);
+      throw new Error(`Kakao API error: ${response.status}`);
     }
 
     const data = await response.json();
 
-    // 응답 데이터 정제
-    const places = data.items.map(item => ({
-      title: item.title.replace(/<\/?b>/g, ''), // HTML 태그 제거
-      category: item.category,
-      address: item.address,
-      roadAddress: item.roadAddress,
-      mapx: item.mapx,  // 경도 (x10000000)
-      mapy: item.mapy,  // 위도 (x10000000)
-      link: item.link,
-      telephone: item.telephone
+    // 응답 데이터 정제 (카카오 API 형식에 맞게)
+    const places = data.documents.map(item => ({
+      title: item.place_name,
+      category: item.category_name,
+      address: item.address_name,
+      roadAddress: item.road_address_name,
+      mapx: parseFloat(item.x),  // 경도 (실제 값)
+      mapy: parseFloat(item.y),  // 위도 (실제 값)
+      link: item.place_url,
+      telephone: item.phone,
+      // 추가 정보
+      id: item.id,
+      categoryGroupCode: item.category_group_code,
+      categoryGroupName: item.category_group_name,
+      distance: item.distance
     }));
 
     return res.status(200).json({
-      total: data.total,
+      total: data.meta.total_count,
       places: places
     });
 
   } catch (error) {
-    console.error('Error fetching from Naver API:', error);
+    console.error('Error fetching from Kakao API:', error);
     return res.status(500).json({
       error: 'Failed to fetch place data',
       message: error.message

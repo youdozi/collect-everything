@@ -13,7 +13,7 @@
 - 🔗 URL 자동 스크래핑: Playwright로 메뉴/가격 자동 추출
 - 📸 스크린샷 OCR: Tesseract.js로 이미지 인식
 - 📋 텍스트 파싱: 복사 붙여넣기 자동 변환
-- 🤖 네이버 API: 장소 정보 자동 입력
+- 🤖 카카오 로컬 API: 장소 정보 자동 입력
 - 🏷️ 카테고리 자동 분류
 
 **상세한 기록 관리**
@@ -33,7 +33,7 @@
 - 📊 여행별 통계 자동 집계
 
 ### 2. 방문 기록
-- 📍 장소 정보 (네이버 API 연동)
+- 📍 장소 정보 (카카오 로컬 API 연동)
 - ⏰ 방문 일시 기록
 - ⭐ 개인 평점
 - 📝 방문 메모
@@ -48,7 +48,7 @@
 - 🔗 **URL 스크래핑**: 네이버 플레이스 링크만 붙여넣기
 - 📸 **OCR 인식**: 스크린샷 자동 읽기 (Tesseract.js)
 - 📋 **텍스트 파싱**: 복사 붙여넣기 자동 변환
-- 🔍 **네이버 API**: 장소 기본 정보
+- 🔍 **카카오 로컬 API**: 장소 기본 정보
 - ✍️ **수동 입력**: 개인 메모, 평점
 
 ---
@@ -279,8 +279,7 @@ npm run dev
 npx vercel
 
 # 환경 변수 설정
-NAVER_CLIENT_ID=your_client_id
-NAVER_CLIENT_SECRET=your_client_secret
+KAKAO_REST_API_KEY=your_kakao_rest_api_key
 
 # 프로덕션 배포
 npx vercel --prod
