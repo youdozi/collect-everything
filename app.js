@@ -554,6 +554,9 @@ function showMessage(message, type = 'success') {
   }, 3000);
 }
 
+// showToast는 showMessage의 별칭
+const showToast = showMessage;
+
 // ============================================
 // 자동화 메뉴 입력 - 3가지 방법
 // ============================================
