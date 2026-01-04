@@ -1279,8 +1279,62 @@ async function loadPopularKeywords() {
 
   } catch (error) {
     console.error('Failed to load keywords:', error);
-    grid.innerHTML = '<div class="keywords-loading">키워드 로딩 실패</div>';
+
+    // 테이블이 없는 경우 기본 키워드 표시
+    if (error.code === '42P01' || error.message.includes('relation') || error.message.includes('does not exist')) {
+      console.warn('popular_keywords 테이블이 없습니다. 기본 키워드를 사용합니다.');
+      grid.innerHTML = `
+        <div class="keywords-loading" style="background: #fff3cd; color: #856404; padding: 12px; border-radius: 6px; margin-bottom: 12px;">
+          ⚠️ 키워드 테이블이 생성되지 않았습니다.<br>
+          <small>Supabase에서 add-keywords-table.sql을 실행해주세요.</small>
+        </div>
+      `;
+      loadDefaultKeywords();
+    } else {
+      grid.innerHTML = `
+        <div class="keywords-loading">
+          ❌ 키워드 로딩 실패<br>
+          <small style="color: #999;">${error.message}</small>
+        </div>
+      `;
+    }
   }
+}
+
+// 기본 키워드 로드 (테이블 없을 때)
+function loadDefaultKeywords() {
+  const grid = document.getElementById('keywordsGrid');
+
+  const defaultKeywords = [
+    { keyword: '강남 카페', emoji: '☕' },
+    { keyword: '홍대 카페', emoji: '☕' },
+    { keyword: '제주 카페', emoji: '☕' },
+    { keyword: '부산 카페', emoji: '☕' },
+    { keyword: '강남 맛집', emoji: '🍽️' },
+    { keyword: '홍대 맛집', emoji: '🍽️' },
+    { keyword: '제주 맛집', emoji: '🍽️' },
+    { keyword: '부산 맛집', emoji: '🍽️' },
+    { keyword: '제주 숙소', emoji: '🏨' },
+    { keyword: '부산 숙소', emoji: '🏨' },
+    { keyword: '강원도 숙소', emoji: '🏨' },
+    { keyword: '경주 관광지', emoji: '🏞️' }
+  ];
+
+  const buttonsHTML = defaultKeywords.map(kw => `
+    <button type="button" class="keyword-btn" data-keyword="${kw.keyword}">
+      ${kw.emoji} ${kw.keyword}
+    </button>
+  `).join('');
+
+  grid.innerHTML += buttonsHTML;
+
+  // 이벤트 리스너 추가
+  document.querySelectorAll('.keyword-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const keyword = e.target.getAttribute('data-keyword');
+      handleKeywordSearch(keyword);
+    });
+  });
 }
 
 // 관리 모달에서 키워드 로드
