@@ -158,24 +158,19 @@
                     <div class="popular-keywords">
                         <div class="keywords-header">
                             <span>🔥 인기 장소 빠른 검색</span>
-                            <label class="batch-mode-toggle">
-                                <input type="checkbox" id="batchSelectMode">
-                                <span>복수 선택 모드</span>
-                            </label>
+                            <div class="keywords-header-actions">
+                                <button type="button" id="btnManageKeywords" class="btn-manage-keywords" style="display: none;">
+                                    ⚙️ 키워드 관리
+                                </button>
+                                <label class="batch-mode-toggle">
+                                    <input type="checkbox" id="batchSelectMode">
+                                    <span>복수 선택 모드</span>
+                                </label>
+                            </div>
                         </div>
-                        <div class="keywords-grid">
-                            <button type="button" class="keyword-btn" data-keyword="강남 카페">☕ 강남 카페</button>
-                            <button type="button" class="keyword-btn" data-keyword="홍대 카페">☕ 홍대 카페</button>
-                            <button type="button" class="keyword-btn" data-keyword="제주 카페">☕ 제주 카페</button>
-                            <button type="button" class="keyword-btn" data-keyword="부산 카페">☕ 부산 카페</button>
-                            <button type="button" class="keyword-btn" data-keyword="강남 맛집">🍽️ 강남 맛집</button>
-                            <button type="button" class="keyword-btn" data-keyword="홍대 맛집">🍽️ 홍대 맛집</button>
-                            <button type="button" class="keyword-btn" data-keyword="제주 맛집">🍽️ 제주 맛집</button>
-                            <button type="button" class="keyword-btn" data-keyword="부산 맛집">🍽️ 부산 맛집</button>
-                            <button type="button" class="keyword-btn" data-keyword="제주 숙소">🏨 제주 숙소</button>
-                            <button type="button" class="keyword-btn" data-keyword="부산 숙소">🏨 부산 숙소</button>
-                            <button type="button" class="keyword-btn" data-keyword="강원도 숙소">🏨 강원도 숙소</button>
-                            <button type="button" class="keyword-btn" data-keyword="경주 관광지">🏞️ 경주 관광지</button>
+                        <div class="keywords-grid" id="keywordsGrid">
+                            <!-- 키워드는 JavaScript로 동적 로드됨 -->
+                            <div class="keywords-loading">키워드 로딩 중...</div>
                         </div>
                     </div>
 
@@ -385,6 +380,52 @@
                 </form>
                 <div class="auth-links">
                     <a href="#" onclick="openModal('modalLogin'); closeModal('modalSignup'); return false;">이미 계정이 있으신가요? 로그인</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 키워드 관리 모달 (관리자 전용) -->
+    <div class="modal" id="modalManageKeywords">
+        <div class="modal-content">
+            <div class="modal-body">
+                <h2>🔥 인기 키워드 관리</h2>
+                <button class="modal-close" onclick="closeModal('modalManageKeywords')">×</button>
+
+                <!-- 새 키워드 추가 -->
+                <div class="keyword-form-section">
+                    <h3>새 키워드 추가</h3>
+                    <form id="formAddKeyword" class="keyword-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>키워드</label>
+                                <input type="text" id="newKeywordText" placeholder="예: 성수 카페" required>
+                            </div>
+                            <div class="form-group">
+                                <label>이모지</label>
+                                <input type="text" id="newKeywordEmoji" placeholder="☕" maxlength="2" required>
+                            </div>
+                            <div class="form-group">
+                                <label>카테고리</label>
+                                <select id="newKeywordCategory" required>
+                                    <option value="cafe">☕ 카페</option>
+                                    <option value="restaurant">🍽️ 음식점</option>
+                                    <option value="accommodation">🏨 숙소</option>
+                                    <option value="attraction">🏞️ 관광지</option>
+                                    <option value="other">📌 기타</option>
+                                </select>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn-primary">추가</button>
+                    </form>
+                </div>
+
+                <!-- 기존 키워드 목록 -->
+                <div class="keyword-list-section">
+                    <h3>기존 키워드 관리</h3>
+                    <div id="keywordsList" class="keywords-management-list">
+                        <div class="keywords-loading">로딩 중...</div>
+                    </div>
                 </div>
             </div>
         </div>

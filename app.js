@@ -152,19 +152,23 @@ function initEventListeners() {
     }
   });
 
-  // 인기 키워드 검색
-  document.querySelectorAll('.keyword-btn').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const keyword = e.target.getAttribute('data-keyword');
-      handleKeywordSearch(keyword);
-    });
+  // 인기 키워드 관리 버튼
+  document.getElementById('btnManageKeywords').addEventListener('click', () => {
+    openModal('modalManageKeywords');
+    loadKeywordsForManagement();
   });
+
+  // 키워드 추가 폼
+  document.getElementById('formAddKeyword').addEventListener('submit', handleAddKeyword);
 
   // 배치 선택 모드 토글
   document.getElementById('batchSelectMode').addEventListener('change', handleBatchModeToggle);
 
   // 배치 추가 버튼
   document.getElementById('btnBatchAdd').addEventListener('click', handleBatchAdd);
+
+  // 초기 키워드 로드
+  loadPopularKeywords();
 
   // 비용 항목 추가
   document.getElementById('btnAddExpense').addEventListener('click', () => addExpenseRow());
@@ -338,6 +342,12 @@ function updateAdminUIControls(isAdmin) {
   const btnAddVisit = document.getElementById('btnAddVisit');
   if (btnAddVisit) {
     btnAddVisit.style.display = isAdmin ? 'inline-block' : 'none';
+  }
+
+  // 키워드 관리 버튼 (관리자 전용)
+  const btnManageKeywords = document.getElementById('btnManageKeywords');
+  if (btnManageKeywords) {
+    btnManageKeywords.style.display = isAdmin ? 'inline-block' : 'none';
   }
 
   // 수정/삭제 버튼 숨기기 (CSS로 제어)
@@ -1229,6 +1239,187 @@ async function handleBatchAdd() {
     showMessage('배치 추가 중 오류가 발생했습니다', 'error');
   }
 }
+
+// ============================================
+// 인기 키워드 관리 (관리자 전용)
+// ============================================
+
+// 인기 키워드 로드 및 표시
+async function loadPopularKeywords() {
+  const grid = document.getElementById('keywordsGrid');
+
+  try {
+    const { data: keywords, error } = await supabaseClient
+      .from('popular_keywords')
+      .select('*')
+      .eq('is_active', true)
+      .order('display_order');
+
+    if (error) throw error;
+
+    if (!keywords || keywords.length === 0) {
+      grid.innerHTML = '<div class="keywords-loading">등록된 키워드가 없습니다</div>';
+      return;
+    }
+
+    // 키워드 버튼 생성
+    grid.innerHTML = keywords.map(kw => `
+      <button type="button" class="keyword-btn" data-keyword="${kw.keyword}">
+        ${kw.emoji} ${kw.keyword}
+      </button>
+    `).join('');
+
+    // 이벤트 리스너 추가
+    document.querySelectorAll('.keyword-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const keyword = e.target.getAttribute('data-keyword');
+        handleKeywordSearch(keyword);
+      });
+    });
+
+  } catch (error) {
+    console.error('Failed to load keywords:', error);
+    grid.innerHTML = '<div class="keywords-loading">키워드 로딩 실패</div>';
+  }
+}
+
+// 관리 모달에서 키워드 로드
+async function loadKeywordsForManagement() {
+  const list = document.getElementById('keywordsList');
+
+  try {
+    const { data: keywords, error } = await supabaseClient
+      .from('popular_keywords')
+      .select('*')
+      .order('display_order');
+
+    if (error) throw error;
+
+    if (!keywords || keywords.length === 0) {
+      list.innerHTML = '<div class="keywords-loading">등록된 키워드가 없습니다</div>';
+      return;
+    }
+
+    const categoryNames = {
+      cafe: '카페',
+      restaurant: '음식점',
+      accommodation: '숙소',
+      attraction: '관광지',
+      other: '기타'
+    };
+
+    list.innerHTML = keywords.map(kw => `
+      <div class="keyword-item ${kw.is_active ? '' : 'inactive'}">
+        <div class="keyword-item-info">
+          <span class="keyword-item-emoji">${kw.emoji}</span>
+          <span class="keyword-item-text">${kw.keyword}</span>
+          <span class="keyword-item-category">${categoryNames[kw.category]}</span>
+        </div>
+        <div class="keyword-item-actions">
+          <button class="btn-toggle-keyword" onclick="toggleKeyword('${kw.id}', ${!kw.is_active})">
+            ${kw.is_active ? '숨김' : '표시'}
+          </button>
+          <button class="btn-delete-keyword" onclick="deleteKeyword('${kw.id}')">
+            삭제
+          </button>
+        </div>
+      </div>
+    `).join('');
+
+  } catch (error) {
+    console.error('Failed to load keywords for management:', error);
+    list.innerHTML = '<div class="keywords-loading">키워드 로딩 실패</div>';
+  }
+}
+
+// 새 키워드 추가
+async function handleAddKeyword(e) {
+  e.preventDefault();
+
+  const keyword = document.getElementById('newKeywordText').value;
+  const emoji = document.getElementById('newKeywordEmoji').value;
+  const category = document.getElementById('newKeywordCategory').value;
+
+  try {
+    // 현재 최대 order 값 가져오기
+    const { data: maxOrder } = await supabaseClient
+      .from('popular_keywords')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1)
+      .single();
+
+    const newOrder = (maxOrder?.display_order || 0) + 1;
+
+    const { error } = await supabaseClient
+      .from('popular_keywords')
+      .insert({
+        keyword,
+        emoji,
+        category,
+        display_order: newOrder
+      });
+
+    if (error) throw error;
+
+    showMessage('키워드가 추가되었습니다!', 'success');
+    document.getElementById('formAddKeyword').reset();
+
+    // 새로고침
+    await loadKeywordsForManagement();
+    await loadPopularKeywords();
+
+  } catch (error) {
+    console.error('Failed to add keyword:', error);
+    showMessage('키워드 추가 실패: ' + error.message, 'error');
+  }
+}
+
+// 키워드 삭제
+window.deleteKeyword = async function(keywordId) {
+  if (!confirm('이 키워드를 삭제하시겠습니까?')) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('popular_keywords')
+      .delete()
+      .eq('id', keywordId);
+
+    if (error) throw error;
+
+    showMessage('키워드가 삭제되었습니다', 'success');
+
+    // 새로고침
+    await loadKeywordsForManagement();
+    await loadPopularKeywords();
+
+  } catch (error) {
+    console.error('Failed to delete keyword:', error);
+    showMessage('키워드 삭제 실패: ' + error.message, 'error');
+  }
+};
+
+// 키워드 활성화/비활성화 토글
+window.toggleKeyword = async function(keywordId, isActive) {
+  try {
+    const { error } = await supabaseClient
+      .from('popular_keywords')
+      .update({ is_active: isActive })
+      .eq('id', keywordId);
+
+    if (error) throw error;
+
+    showMessage(isActive ? '키워드가 표시됩니다' : '키워드가 숨겨졌습니다', 'success');
+
+    // 새로고침
+    await loadKeywordsForManagement();
+    await loadPopularKeywords();
+
+  } catch (error) {
+    console.error('Failed to toggle keyword:', error);
+    showMessage('키워드 상태 변경 실패: ' + error.message, 'error');
+  }
+};
 
 // ============================================
 // 비용 항목 관리
