@@ -689,6 +689,120 @@ body.viewer-mode .btn-add-visit {
     background: white;
 }
 
+.search-result-item.selected {
+    border-color: var(--primary);
+    background: #e7eaff;
+    position: relative;
+}
+
+.search-result-item.selected::after {
+    content: "✓";
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    color: var(--primary);
+    font-weight: bold;
+    font-size: 1.2em;
+}
+
+/* ============================================
+   인기 키워드 배치 검색
+   ============================================ */
+
+.popular-keywords {
+    margin: 16px 0;
+    padding: 16px;
+    background: #f8f9ff;
+    border-radius: 8px;
+    border: 1px solid #e0e4ff;
+}
+
+.keywords-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.batch-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+    font-weight: normal;
+    cursor: pointer;
+    user-select: none;
+}
+
+.batch-mode-toggle input[type="checkbox"] {
+    cursor: pointer;
+}
+
+.keywords-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 8px;
+}
+
+.keyword-btn {
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 0.9em;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.keyword-btn:hover {
+    border-color: var(--primary);
+    background: #f0f2ff;
+    transform: translateY(-2px);
+}
+
+.keyword-btn:active {
+    transform: translateY(0);
+}
+
+.batch-add-container {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 2px solid var(--border);
+    text-align: center;
+}
+
+.btn-batch-add {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-batch-add:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.btn-batch-add:active {
+    transform: translateY(0);
+}
+
+#selectedCount {
+    font-weight: bold;
+    color: #ffd700;
+}
+
 /* ============================================
    비용 항목
    ============================================ */

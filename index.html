@@ -153,7 +153,40 @@
                             📍 내 위치
                         </button>
                     </div>
+
+                    <!-- 인기 키워드 빠른 검색 -->
+                    <div class="popular-keywords">
+                        <div class="keywords-header">
+                            <span>🔥 인기 장소 빠른 검색</span>
+                            <label class="batch-mode-toggle">
+                                <input type="checkbox" id="batchSelectMode">
+                                <span>복수 선택 모드</span>
+                            </label>
+                        </div>
+                        <div class="keywords-grid">
+                            <button type="button" class="keyword-btn" data-keyword="강남 카페">☕ 강남 카페</button>
+                            <button type="button" class="keyword-btn" data-keyword="홍대 카페">☕ 홍대 카페</button>
+                            <button type="button" class="keyword-btn" data-keyword="제주 카페">☕ 제주 카페</button>
+                            <button type="button" class="keyword-btn" data-keyword="부산 카페">☕ 부산 카페</button>
+                            <button type="button" class="keyword-btn" data-keyword="강남 맛집">🍽️ 강남 맛집</button>
+                            <button type="button" class="keyword-btn" data-keyword="홍대 맛집">🍽️ 홍대 맛집</button>
+                            <button type="button" class="keyword-btn" data-keyword="제주 맛집">🍽️ 제주 맛집</button>
+                            <button type="button" class="keyword-btn" data-keyword="부산 맛집">🍽️ 부산 맛집</button>
+                            <button type="button" class="keyword-btn" data-keyword="제주 숙소">🏨 제주 숙소</button>
+                            <button type="button" class="keyword-btn" data-keyword="부산 숙소">🏨 부산 숙소</button>
+                            <button type="button" class="keyword-btn" data-keyword="강원도 숙소">🏨 강원도 숙소</button>
+                            <button type="button" class="keyword-btn" data-keyword="경주 관광지">🏞️ 경주 관광지</button>
+                        </div>
+                    </div>
+
                     <div id="searchResults" class="search-results"></div>
+
+                    <!-- 배치 추가 버튼 (복수 선택 시) -->
+                    <div id="batchAddContainer" style="display: none;" class="batch-add-container">
+                        <button type="button" id="btnBatchAdd" class="btn-batch-add">
+                            선택한 <span id="selectedCount">0</span>개 장소 추가
+                        </button>
+                    </div>
                 </div>
 
                 <!-- 자동화 메뉴 입력 (3가지 방법) -->

@@ -152,6 +152,20 @@ function initEventListeners() {
     }
   });
 
+  // 인기 키워드 검색
+  document.querySelectorAll('.keyword-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const keyword = e.target.getAttribute('data-keyword');
+      handleKeywordSearch(keyword);
+    });
+  });
+
+  // 배치 선택 모드 토글
+  document.getElementById('batchSelectMode').addEventListener('change', handleBatchModeToggle);
+
+  // 배치 추가 버튼
+  document.getElementById('btnBatchAdd').addEventListener('click', handleBatchAdd);
+
   // 비용 항목 추가
   document.getElementById('btnAddExpense').addEventListener('click', () => addExpenseRow());
 
@@ -818,11 +832,12 @@ async function handleKakaoSearch() {
 function renderSearchResults(places) {
   const container = document.getElementById('searchResults');
   container.innerHTML = places.map((place, index) => `
-    <div class="search-result-item" onclick="selectPlace(${index})">
+    <div class="search-result-item" onclick="selectPlace(${index})" data-index="${index}">
       <strong>${place.title}</strong>
       <div style="font-size: 0.9em; color: #6c757d;">
         ${place.roadAddress || place.address}
       </div>
+      ${place.category ? `<div style="font-size: 0.85em; color: #999; margin-top: 4px;">${place.category}</div>` : ''}
     </div>
   `).join('');
 
@@ -833,7 +848,28 @@ function renderSearchResults(places) {
 window.selectPlace = function(index) {
   const place = window.searchResultsData[index];
 
-  // 폼에 자동 입력
+  // 배치 선택 모드일 때
+  if (batchSelectMode) {
+    const resultItem = document.querySelector(`.search-result-item[data-index="${index}"]`);
+
+    // 이미 선택된 항목인지 확인
+    const existingIndex = selectedPlaces.findIndex(p => p.id === place.id);
+
+    if (existingIndex >= 0) {
+      // 선택 해제
+      selectedPlaces.splice(existingIndex, 1);
+      resultItem.classList.remove('selected');
+    } else {
+      // 선택 추가
+      selectedPlaces.push(place);
+      resultItem.classList.add('selected');
+    }
+
+    updateBatchUI();
+    return;
+  }
+
+  // 일반 모드: 폼에 자동 입력
   document.getElementById('visitPlaceName').value = place.title;
   document.getElementById('visitAddress').value = place.roadAddress || place.address;
 
@@ -1003,6 +1039,178 @@ async function handleClipboardDetection() {
     } else {
       console.error('Clipboard detection error:', error);
     }
+  }
+}
+
+// ============================================
+// 인기 키워드 배치 검색
+// ============================================
+
+// 배치 선택 상태 관리
+let batchSelectMode = false;
+let selectedPlaces = [];
+
+async function handleKeywordSearch(keyword) {
+  const searchInput = document.getElementById('placeSearchInput');
+  const resultsContainer = document.getElementById('searchResults');
+
+  // 검색어 입력란에 키워드 표시
+  searchInput.value = keyword;
+
+  // 캐시 확인
+  const cacheKey = `search:${keyword}`;
+  let places = DataCache.get(cacheKey);
+
+  if (places) {
+    console.log(`✅ 캐시에서 검색 결과 로드: "${keyword}"`);
+    renderSearchResults(places);
+    return;
+  }
+
+  resultsContainer.innerHTML = '<div class="search-loading">🔥 인기 장소 검색 중...</div>';
+
+  try {
+    console.log(`📡 인기 키워드 검색: "${keyword}"`);
+    const response = await fetch(`/api/search-place?query=${encodeURIComponent(keyword)}`);
+    if (!response.ok) throw new Error('Search failed');
+
+    const data = await response.json();
+
+    if (!data.places || data.places.length === 0) {
+      resultsContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다</div>';
+      return;
+    }
+
+    // 캐시 저장
+    DataCache.set(cacheKey, data.places);
+
+    renderSearchResults(data.places);
+    showMessage(`"${keyword}" ${data.places.length}개 장소 발견!`, 'success');
+  } catch (error) {
+    console.error('Keyword search error:', error);
+    resultsContainer.innerHTML = `
+      <div class="search-error">
+        검색 중 오류가 발생했습니다
+      </div>
+    `;
+  }
+}
+
+function handleBatchModeToggle(e) {
+  batchSelectMode = e.target.checked;
+
+  // 배치 모드가 꺼지면 선택 초기화
+  if (!batchSelectMode) {
+    selectedPlaces = [];
+    updateBatchUI();
+
+    // 모든 선택 표시 제거
+    document.querySelectorAll('.search-result-item.selected').forEach(item => {
+      item.classList.remove('selected');
+    });
+  }
+
+  showMessage(
+    batchSelectMode ? '복수 선택 모드 활성화 ✓' : '복수 선택 모드 해제',
+    batchSelectMode ? 'success' : 'info'
+  );
+}
+
+function updateBatchUI() {
+  const container = document.getElementById('batchAddContainer');
+  const countSpan = document.getElementById('selectedCount');
+
+  if (batchSelectMode && selectedPlaces.length > 0) {
+    container.style.display = 'block';
+    countSpan.textContent = selectedPlaces.length;
+  } else {
+    container.style.display = 'none';
+  }
+}
+
+async function handleBatchAdd() {
+  if (selectedPlaces.length === 0) {
+    showMessage('선택한 장소가 없습니다', 'warning');
+    return;
+  }
+
+  const isAdmin = await authClient.isAdmin();
+  if (!isAdmin) {
+    showMessage('관리자만 방문 기록을 추가할 수 있습니다', 'error');
+    return;
+  }
+
+  if (!currentTrip) {
+    showMessage('여행을 먼저 선택해주세요', 'error');
+    return;
+  }
+
+  // 확인 메시지
+  const confirmed = confirm(
+    `선택한 ${selectedPlaces.length}개 장소를 한번에 추가하시겠습니까?\n\n` +
+    selectedPlaces.slice(0, 3).map(p => `• ${p.title}`).join('\n') +
+    (selectedPlaces.length > 3 ? `\n... 외 ${selectedPlaces.length - 3}개` : '')
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const now = new Date();
+    const dateTimeLocal = now.toISOString().slice(0, 16);
+
+    // 각 장소를 방문 기록으로 추가
+    for (const place of selectedPlaces) {
+      // 카테고리 자동 분류
+      const categoryLower = place.category.toLowerCase();
+      let category = 'other';
+      if (categoryLower.includes('카페') || categoryLower.includes('cafe')) {
+        category = 'cafe';
+      } else if (categoryLower.includes('음식') || categoryLower.includes('restaurant')) {
+        category = 'restaurant';
+      } else if (categoryLower.includes('숙박') || categoryLower.includes('호텔')) {
+        category = 'accommodation';
+      } else if (categoryLower.includes('관광') || categoryLower.includes('명소')) {
+        category = 'attraction';
+      }
+
+      const visitData = {
+        trip_id: currentTrip.id,
+        place_name: place.title,
+        category: category,
+        address: place.roadAddress || place.address,
+        visit_date: dateTimeLocal,
+        rating: null,
+        notes: `${place.category}`,
+        kakao_place_id: place.id,
+        latitude: place.mapy,
+        longitude: place.mapx,
+        kakao_place_url: place.link,
+        expenses: []
+      };
+
+      const { error } = await supabaseClient.from('visits').insert(visitData);
+      if (error) throw error;
+    }
+
+    // 성공 메시지
+    showMessage(`${selectedPlaces.length}개 장소가 추가되었습니다! 🎉`, 'success');
+
+    // 캐시 무효화 및 UI 업데이트
+    DataCache.invalidatePattern(`trip:${currentTrip.id}`);
+    await loadTripDetail(currentTrip.id);
+
+    // 모달 닫기
+    closeModal('modalAddVisit');
+
+    // 선택 초기화
+    selectedPlaces = [];
+    document.getElementById('batchSelectMode').checked = false;
+    batchSelectMode = false;
+    updateBatchUI();
+
+  } catch (error) {
+    console.error('Batch add error:', error);
+    showMessage('배치 추가 중 오류가 발생했습니다', 'error');
   }
 }
 
