@@ -139,12 +139,22 @@ CREATE TRIGGER update_visits_updated_at
 
 CREATE OR REPLACE FUNCTION handle_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+  user_role TEXT;
 BEGIN
+  -- youdozi@gmail.com은 자동으로 관리자
+  -- 또는 첫 번째 사용자는 자동으로 관리자
+  IF NEW.email = 'youdozi@gmail.com' OR NOT EXISTS (SELECT 1 FROM public.users) THEN
+    user_role := 'admin';
+  ELSE
+    user_role := 'viewer';
+  END IF;
+
   INSERT INTO public.users (id, email, role, display_name)
   VALUES (
     NEW.id,
     NEW.email,
-    'viewer', -- 기본값은 viewer
+    user_role,
     COALESCE(NEW.raw_user_meta_data->>'display_name', split_part(NEW.email, '@', 1))
   );
   RETURN NEW;
