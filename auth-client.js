@@ -57,12 +57,70 @@ class AuthClient {
         .eq('id', this.currentUser.id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        // PGRST116: 프로필이 존재하지 않음
+        if (error.code === 'PGRST116') {
+          console.warn('프로필이 없습니다. 자동 생성을 시도합니다...');
+          return await this.createMissingProfile();
+        }
+        throw error;
+      }
+
       this.currentUserProfile = data;
       return data;
     } catch (error) {
       console.error('Failed to load user profile:', error);
       return null;
+    }
+  }
+
+  // 누락된 프로필 자동 생성
+  async createMissingProfile() {
+    if (!this.currentUser) return null;
+
+    try {
+      const displayName = this.currentUser.user_metadata?.display_name
+        || this.currentUser.email?.split('@')[0]
+        || '사용자';
+
+      // 첫 번째 사용자이거나 youdozi@gmail.com이면 admin
+      const isFirstUser = await this.isFirstUser();
+      const isOwner = this.currentUser.email === 'youdozi@gmail.com';
+      const role = (isFirstUser || isOwner) ? 'admin' : 'viewer';
+
+      const { data, error } = await this.client
+        .from('users')
+        .insert({
+          id: this.currentUser.id,
+          email: this.currentUser.email,
+          role: role,
+          display_name: displayName
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      console.log('✅ 프로필 자동 생성 완료:', data);
+      this.currentUserProfile = data;
+      return data;
+    } catch (error) {
+      console.error('프로필 자동 생성 실패:', error);
+      return null;
+    }
+  }
+
+  // 첫 번째 사용자인지 확인
+  async isFirstUser() {
+    try {
+      const { count } = await this.client
+        .from('users')
+        .select('*', { count: 'exact', head: true });
+
+      return count === 0;
+    } catch (error) {
+      console.error('Failed to check first user:', error);
+      return false;
     }
   }
 
