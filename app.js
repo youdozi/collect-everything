@@ -1181,6 +1181,9 @@ async function handleBatchAdd() {
   if (!confirmed) return;
 
   try {
+    // Supabase 클라이언트 가져오기
+    const client = window.supabaseClient || await travelDB.getClient();
+
     const now = new Date();
     const dateTimeLocal = now.toISOString().slice(0, 16);
 
@@ -1214,7 +1217,7 @@ async function handleBatchAdd() {
         expenses: []
       };
 
-      const { error } = await supabaseClient.from('visits').insert(visitData);
+      const { error } = await client.from('visits').insert(visitData);
       if (error) throw error;
     }
 
@@ -1249,7 +1252,14 @@ async function loadPopularKeywords() {
   const grid = document.getElementById('keywordsGrid');
 
   try {
-    const { data: keywords, error } = await supabaseClient
+    // Supabase 클라이언트가 준비될 때까지 대기
+    let client = window.supabaseClient;
+    if (!client) {
+      await travelDB.init();
+      client = await travelDB.getClient();
+    }
+
+    const { data: keywords, error } = await client
       .from('popular_keywords')
       .select('*')
       .eq('is_active', true)
@@ -1342,7 +1352,10 @@ async function loadKeywordsForManagement() {
   const list = document.getElementById('keywordsList');
 
   try {
-    const { data: keywords, error } = await supabaseClient
+    // Supabase 클라이언트 가져오기
+    const client = window.supabaseClient || await travelDB.getClient();
+
+    const { data: keywords, error} = await client
       .from('popular_keywords')
       .select('*')
       .order('display_order');
@@ -1395,8 +1408,11 @@ async function handleAddKeyword(e) {
   const category = document.getElementById('newKeywordCategory').value;
 
   try {
+    // Supabase 클라이언트 가져오기
+    const client = window.supabaseClient || await travelDB.getClient();
+
     // 현재 최대 order 값 가져오기
-    const { data: maxOrder } = await supabaseClient
+    const { data: maxOrder } = await client
       .from('popular_keywords')
       .select('display_order')
       .order('display_order', { ascending: false })
@@ -1405,7 +1421,7 @@ async function handleAddKeyword(e) {
 
     const newOrder = (maxOrder?.display_order || 0) + 1;
 
-    const { error } = await supabaseClient
+    const { error } = await client
       .from('popular_keywords')
       .insert({
         keyword,
@@ -1434,7 +1450,10 @@ window.deleteKeyword = async function(keywordId) {
   if (!confirm('이 키워드를 삭제하시겠습니까?')) return;
 
   try {
-    const { error } = await supabaseClient
+    // Supabase 클라이언트 가져오기
+    const client = window.supabaseClient || await travelDB.getClient();
+
+    const { error } = await client
       .from('popular_keywords')
       .delete()
       .eq('id', keywordId);
@@ -1456,7 +1475,10 @@ window.deleteKeyword = async function(keywordId) {
 // 키워드 활성화/비활성화 토글
 window.toggleKeyword = async function(keywordId, isActive) {
   try {
-    const { error } = await supabaseClient
+    // Supabase 클라이언트 가져오기
+    const client = window.supabaseClient || await travelDB.getClient();
+
+    const { error } = await client
       .from('popular_keywords')
       .update({ is_active: isActive })
       .eq('id', keywordId);

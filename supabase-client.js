@@ -320,7 +320,22 @@ class TravelDBClient {
     if (error) throw error;
     return true;
   }
+
+  // 원시 클라이언트 접근 (키워드 관리 등에서 사용)
+  async getClient() {
+    await this.init();
+    return this.client;
+  }
 }
 
 // 싱글톤 인스턴스 생성
 const travelDB = new TravelDBClient();
+
+// 전역으로 노출 (하위 호환성)
+window.supabaseClient = null;
+
+// Supabase 클라이언트를 전역으로 사용 가능하도록 초기화
+(async () => {
+  await travelDB.init();
+  window.supabaseClient = travelDB.client;
+})();
