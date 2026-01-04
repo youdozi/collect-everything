@@ -225,7 +225,9 @@ async function handleLogin(e) {
     const result = await authClient.signIn(email, password);
     closeModal('modalLogin');
     document.getElementById('formLogin').reset();
-    showMessage(`환영합니다, ${result.profile.display_name}님!`);
+
+    const displayName = result.profile?.display_name || result.user?.email?.split('@')[0] || '사용자';
+    showMessage(`환영합니다, ${displayName}님!`);
     await loadTrips();
   } catch (error) {
     console.error('Login failed:', error);
@@ -300,8 +302,9 @@ async function updateAuthUI() {
     userButtons.style.display = 'flex';
 
     // 사용자 정보 표시
+    const displayName = profile.display_name || user.email?.split('@')[0] || '사용자';
     const roleText = profile.role === 'admin' ? '관리자' : '일반';
-    userInfo.textContent = `${profile.display_name} (${roleText})`;
+    userInfo.textContent = `${displayName} (${roleText})`;
 
     // 관리자만 여행 추가 버튼 표시
     if (btnNewTrip) {
@@ -310,6 +313,19 @@ async function updateAuthUI() {
 
     // 수정/삭제 버튼 권한 제어
     updateAdminUIControls(profile.role === 'admin');
+  } else if (user && !profile) {
+    // 사용자는 있지만 프로필이 없는 경우 (로딩 중이거나 DB 동기화 문제)
+    guestButtons.style.display = 'none';
+    userButtons.style.display = 'flex';
+
+    const displayName = user.email?.split('@')[0] || '사용자';
+    userInfo.textContent = `${displayName} (로딩 중...)`;
+
+    // 프로필 다시 로드 시도
+    setTimeout(async () => {
+      await authClient.loadUserProfile();
+      await updateAuthUI();
+    }, 1000);
   } else {
     // 로그아웃 상태
     guestButtons.style.display = 'flex';
