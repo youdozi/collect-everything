@@ -504,12 +504,13 @@ body.viewer-mode .btn-add-visit {
     border-radius: 16px;
     padding: 32px;
     max-width: 600px;
-    width: 90%;
+    width: calc(100% - 32px);
     max-height: 85vh;
     overflow-y: auto;
     overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     position: relative;
+    margin: 16px;
 }
 
 .modal-large {
@@ -537,21 +538,23 @@ body.viewer-mode .btn-add-visit {
 .btn-close {
     background: none;
     border: none;
-    font-size: 2em;
+    font-size: 2.5em;
     color: #6c757d;
     cursor: pointer;
     line-height: 1;
-    transition: color 0.2s;
-    padding: 8px;
-    min-width: 44px;
-    min-height: 44px;
+    transition: all 0.2s;
+    padding: 12px;
+    min-width: 56px;
+    min-height: 56px;
     display: flex;
     align-items: center;
     justify-content: center;
+    border-radius: 50%;
 }
 
 .btn-close:hover {
     color: var(--dark);
+    background: rgba(0, 0, 0, 0.05);
 }
 
 /* ============================================
@@ -579,11 +582,13 @@ body.viewer-mode .btn-add-visit {
 .form-group select,
 .form-group textarea {
     width: 100%;
+    max-width: 100%;
     padding: 10px 12px;
     border: 2px solid var(--border);
     border-radius: 8px;
     font-size: 1em;
     transition: border-color 0.2s;
+    box-sizing: border-box;
 }
 
 .form-group input:focus,
@@ -1332,10 +1337,11 @@ body.viewer-mode .btn-add-visit {
     }
 
     .modal-content {
-        width: 95%;
+        width: calc(100% - 24px);
         padding: 20px;
         max-height: 90vh;
         border-radius: 12px;
+        margin: 12px;
     }
 
     .modal-header {
@@ -1348,7 +1354,9 @@ body.viewer-mode .btn-add-visit {
     }
 
     .btn-close {
-        font-size: 1.5em;
+        font-size: 2em;
+        min-width: 52px;
+        min-height: 52px;
     }
 
     /* 키워드 그리드 모바일 최적화 */

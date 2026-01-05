@@ -205,8 +205,8 @@ async function openModal(modalId) {
   // 모달이 열릴 때 초기화
   if (modalId === 'modalAddVisit') {
     resetVisitForm();
-    // 클립보드 자동 감지
-    await handleClipboardDetection();
+    // 클립보드 자동 감지 - 사용자 요청으로 비활성화
+    // await handleClipboardDetection();
   }
 }
 
