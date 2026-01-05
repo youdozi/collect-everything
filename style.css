@@ -8,6 +8,12 @@
     box-sizing: border-box;
 }
 
+html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+}
+
 :root {
     --primary: #667eea;
     --primary-dark: #5568d3;
@@ -25,6 +31,9 @@ body {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     min-height: 100vh;
     color: var(--dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    touch-action: manipulation;
 }
 
 .app-container {
@@ -483,6 +492,7 @@ body.viewer-mode .btn-add-visit {
     z-index: 1000;
     align-items: center;
     justify-content: center;
+    padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
 }
 
 .modal.active {
@@ -495,8 +505,11 @@ body.viewer-mode .btn-add-visit {
     padding: 32px;
     max-width: 600px;
     width: 90%;
-    max-height: 90vh;
+    max-height: 85vh;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
 }
 
 .modal-large {
@@ -508,6 +521,12 @@ body.viewer-mode .btn-add-visit {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 24px;
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 10;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
 }
 
 .modal-header h3 {
@@ -523,6 +542,12 @@ body.viewer-mode .btn-add-visit {
     cursor: pointer;
     line-height: 1;
     transition: color 0.2s;
+    padding: 8px;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .btn-close:hover {
@@ -672,6 +697,28 @@ body.viewer-mode .btn-add-visit {
     margin-top: 16px;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--light);
+}
+
+.search-results::-webkit-scrollbar {
+    width: 6px;
+}
+
+.search-results::-webkit-scrollbar-track {
+    background: var(--light);
+    border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.search-results::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 
 .search-result-item {
@@ -867,6 +914,28 @@ body.viewer-mode .btn-add-visit {
 .keywords-management-list {
     max-height: 400px;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--light);
+}
+
+.keywords-management-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.keywords-management-list::-webkit-scrollbar-track {
+    background: var(--light);
+    border-radius: 3px;
+}
+
+.keywords-management-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.keywords-management-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 
 .keyword-item {
@@ -1103,6 +1172,28 @@ body.viewer-mode .btn-add-visit {
     margin-top: 12px;
     max-height: 300px;
     overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) var(--light);
+}
+
+.popular-searches-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.popular-searches-list::-webkit-scrollbar-track {
+    background: var(--light);
+    border-radius: 3px;
+}
+
+.popular-searches-list::-webkit-scrollbar-thumb {
+    background: var(--primary);
+    border-radius: 3px;
+}
+
+.popular-searches-list::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
 }
 
 .popular-search-item {
@@ -1208,10 +1299,19 @@ body.viewer-mode .btn-add-visit {
    ============================================ */
 
 @media (max-width: 768px) {
+    .app-container {
+        padding: 12px;
+    }
+
     .app-header {
         flex-direction: column;
         gap: 16px;
         text-align: center;
+        padding: 20px;
+    }
+
+    .header-content h1 {
+        font-size: 1.5em;
     }
 
     .trips-grid {
@@ -1232,7 +1332,197 @@ body.viewer-mode .btn-add-visit {
     }
 
     .modal-content {
+        width: 95%;
         padding: 20px;
+        max-height: 90vh;
+        border-radius: 12px;
+    }
+
+    .modal-header {
+        margin-bottom: 16px;
+        padding-bottom: 12px;
+    }
+
+    .modal-header h3 {
+        font-size: 1.2em;
+    }
+
+    .btn-close {
+        font-size: 1.5em;
+    }
+
+    /* 키워드 그리드 모바일 최적화 */
+    .keywords-grid {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 6px;
+    }
+
+    .keyword-btn {
+        padding: 8px 10px;
+        font-size: 0.85em;
+    }
+
+    /* 자동 수집 UI 모바일 최적화 */
+    .auto-method-card {
+        padding: 16px;
+    }
+
+    .auto-method-title {
+        font-size: 1em;
+    }
+
+    .auto-method-desc {
+        font-size: 0.85em;
+    }
+
+    .btn-auto-generate,
+    .btn-load-popular {
+        padding: 6px 12px;
+        font-size: 0.85em;
+    }
+
+    .auto-keywords-grid {
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 8px;
+    }
+
+    .popular-search-item {
+        padding: 8px 10px;
+    }
+
+    .popular-search-emoji {
+        font-size: 1.2em;
+    }
+
+    .popular-search-text {
+        font-size: 0.9em;
+    }
+
+    .popular-search-meta {
+        font-size: 0.75em;
+    }
+
+    .btn-add-to-keywords {
+        padding: 5px 10px;
+        font-size: 0.8em;
+    }
+
+    /* 검색 UI 모바일 최적화 */
+    .search-input-group {
+        flex-direction: column;
+    }
+
+    .search-input-group input {
+        width: 100%;
+    }
+
+    .btn-search,
+    .btn-nearby {
+        width: 100%;
+    }
+
+    /* 키워드 관리 모바일 최적화 */
+    .keywords-management-list {
+        max-height: 300px;
+    }
+
+    .keyword-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .keyword-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
+
+    /* 배치 추가 모드 */
+    .batch-mode-toggle {
+        font-size: 0.85em;
+    }
+
+    /* 폼 입력 필드 터치 최적화 */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 16px; /* iOS 줌 방지 */
+        padding: 12px;
+    }
+
+    /* 버튼 터치 영역 최적화 */
+    .btn-primary,
+    .btn-secondary,
+    .btn-login,
+    .btn-signup,
+    .btn-logout {
+        min-height: 44px;
+        padding: 12px 20px;
+    }
+}
+
+/* 작은 모바일 디바이스 (320px ~ 480px) */
+@media (max-width: 480px) {
+    .app-container {
+        padding: 8px;
+    }
+
+    .app-header {
+        padding: 16px;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    .modal-content {
+        width: 100%;
+        height: 100%;
+        max-height: 100vh;
+        border-radius: 0;
+        padding: 16px;
+    }
+
+    .modal-header {
+        margin-bottom: 12px;
+    }
+
+    .keywords-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 6px;
+    }
+
+    .auto-keywords-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .trip-card {
+        padding: 16px;
+    }
+
+    .visit-item {
+        padding: 16px;
+    }
+}
+
+/* 가로 모드 최적화 */
+@media (max-height: 600px) and (orientation: landscape) {
+    .modal-content {
+        max-height: 95vh;
+        padding: 16px;
+    }
+
+    .modal-header {
+        margin-bottom: 12px;
+        padding-bottom: 8px;
+    }
+
+    .keywords-management-list {
+        max-height: 200px;
+    }
+
+    .popular-searches-list {
+        max-height: 200px;
     }
 }
 
