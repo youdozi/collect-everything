@@ -420,6 +420,35 @@
                     </form>
                 </div>
 
+                <!-- 자동 키워드 수집 -->
+                <div class="keyword-auto-section">
+                    <h3>🤖 자동 키워드 수집</h3>
+
+                    <!-- 방법 A: 자동 생성 -->
+                    <div class="auto-method-card">
+                        <div class="auto-method-header">
+                            <span class="auto-method-title">⚡ 지역 × 카테고리 자동 생성</span>
+                            <button type="button" id="btnAutoGenerate" class="btn-auto-generate">
+                                자동 생성 시작
+                            </button>
+                        </div>
+                        <p class="auto-method-desc">18개 주요 지역 × 4개 카테고리 = 최대 72개 키워드 자동 생성</p>
+                        <div id="autoGenerateStatus" class="auto-status"></div>
+                    </div>
+
+                    <!-- 방법 B: 인기 검색어 -->
+                    <div class="auto-method-card">
+                        <div class="auto-method-header">
+                            <span class="auto-method-title">📊 사용자 인기 검색어</span>
+                            <button type="button" id="btnLoadPopularSearches" class="btn-load-popular">
+                                인기 검색어 보기
+                            </button>
+                        </div>
+                        <p class="auto-method-desc">최근 30일간 사용자들이 가장 많이 검색한 키워드</p>
+                        <div id="popularSearchesList" class="popular-searches-list"></div>
+                    </div>
+                </div>
+
                 <!-- 기존 키워드 목록 -->
                 <div class="keyword-list-section">
                     <h3>기존 키워드 관리</h3>

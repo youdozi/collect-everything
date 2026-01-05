@@ -995,6 +995,215 @@ body.viewer-mode .btn-add-visit {
 }
 
 /* ============================================
+   자동 키워드 수집
+   ============================================ */
+
+.keyword-auto-section {
+    margin-top: 32px;
+    padding-top: 32px;
+    border-top: 2px solid var(--border);
+}
+
+.keyword-auto-section h3 {
+    font-size: 1.3em;
+    color: var(--dark);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.auto-method-card {
+    background: #f8f9ff;
+    border: 2px solid #e0e4ff;
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 16px;
+    transition: all 0.2s;
+}
+
+.auto-method-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+}
+
+.auto-method-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.auto-method-title {
+    font-size: 1.1em;
+    font-weight: 600;
+    color: var(--dark);
+}
+
+.auto-method-desc {
+    color: #6c757d;
+    font-size: 0.9em;
+    line-height: 1.5;
+    margin-bottom: 12px;
+}
+
+.btn-auto-generate,
+.btn-load-popular {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.btn-auto-generate:hover,
+.btn-load-popular:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.btn-auto-generate:disabled,
+.btn-load-popular:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auto-status {
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 0.9em;
+    margin-top: 12px;
+}
+
+.auto-status.loading {
+    background: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.auto-status.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.auto-status.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.popular-searches-list {
+    margin-top: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.popular-search-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+    transition: all 0.2s;
+}
+
+.popular-search-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.1);
+}
+
+.popular-search-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+}
+
+.popular-search-emoji {
+    font-size: 1.3em;
+}
+
+.popular-search-text {
+    font-weight: 500;
+    color: var(--dark);
+}
+
+.popular-search-meta {
+    font-size: 0.8em;
+    color: #6c757d;
+    margin-left: 8px;
+}
+
+.btn-add-to-keywords {
+    background: var(--success);
+    color: white;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-add-to-keywords:hover {
+    background: #218838;
+    transform: scale(1.05);
+}
+
+.btn-add-to-keywords:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.auto-keywords-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.auto-keyword-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.auto-keyword-item:hover {
+    border-color: var(--primary);
+}
+
+.auto-keyword-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.9em;
+}
+
+.auto-keyword-count {
+    font-size: 0.75em;
+    color: #6c757d;
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 3px;
+}
+
+/* ============================================
    반응형
    ============================================ */
 
