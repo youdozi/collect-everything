@@ -1099,6 +1099,10 @@ async function handleKeywordSearch(keyword) {
   if (places) {
     console.log(`✅ 캐시에서 검색 결과 로드: "${keyword}"`);
     renderSearchResults(places);
+    // 검색 결과로 스크롤
+    setTimeout(() => {
+      resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
     return;
   }
 
@@ -1115,6 +1119,10 @@ async function handleKeywordSearch(keyword) {
       resultsContainer.innerHTML = '<div class="search-loading">검색 결과가 없습니다</div>';
       // 검색 로그 저장 (결과 0개)
       await logSearch(keyword, 0);
+      // 검색 결과로 스크롤
+      setTimeout(() => {
+        resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, 100);
       return;
     }
 
@@ -1126,6 +1134,11 @@ async function handleKeywordSearch(keyword) {
 
     renderSearchResults(data.places);
     showMessage(`"${keyword}" ${data.places.length}개 장소 발견!`, 'success');
+
+    // 검색 결과로 스크롤
+    setTimeout(() => {
+      resultsContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
   } catch (error) {
     console.error('Keyword search error:', error);
     resultsContainer.innerHTML = `
